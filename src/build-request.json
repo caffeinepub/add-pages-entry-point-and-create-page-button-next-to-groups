@@ -1,0 +1,93 @@
+{
+  "kind": "build_request",
+  "title": "Add Pages entry point and Create Page button next to Groups",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Add a new primary navigation item labeled \"Pages\" next to the existing \"Groups\" item in the bottom navigation, and make it navigate to a new route at \"/pages\".",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "create page button beside of groups button where users can create pages"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Bottom navigation shows a \"Pages\" item positioned adjacent to \"Groups\".",
+        "Clicking \"Pages\" navigates to \"/pages\" without errors.",
+        "The active-state styling works for the new \"/pages\" route similarly to existing tabs (e.g., Home/Groups)."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "On the existing Groups page header, add a \"Create Page\" button placed beside the existing \"Create Group\" button; clicking it should navigate users to a new route at \"/pages/create\".",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "create page button beside of groups button where users can create pages"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The Groups page header displays both \"Create Group\" and \"Create Page\" actions side-by-side on desktop widths and remains usable on mobile widths (no overlap/cutoff).",
+        "Clicking \"Create Page\" navigates to \"/pages/create\"."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Create a new Pages listing screen at route \"/pages\" and a Create Page screen at route \"/pages/create\". The Create Page screen must include a form with the following fields and basic client-side validation: Page Name (required), Category (Politics / News / Business / Community / Public Figure), Description, Profile Image upload, Cover Image upload, Visibility (Public / Private), and a Verification request toggle. Submitting the form should show an English user-facing message indicating the creation flow is not yet persisted (until backend support is implemented).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "create page button beside of groups button where users can create pages"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Navigating to \"/pages\" renders a Pages screen (it may show an empty/placeholder state, but must not crash).",
+        "Navigating to \"/pages/create\" renders the Create Page form with all specified fields.",
+        "Form validation prevents submission when Page Name is empty and displays an English validation message.",
+        "Submitting a valid form shows an English toast/notification that the create flow is not yet persisted, and the app remains stable."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Add a new static icon asset for the bottom navigation \"Pages\" item and use it in the same way the existing Groups icon is used (image-based icon).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "create page button beside of groups button where users can create pages"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A new icon file exists under frontend/public/assets/generated and is referenced by the bottom navigation for the \"Pages\" tab.",
+        "The icon renders correctly in the bottom navigation and follows the same active/inactive behavior as the Groups icon."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not modify any files under frontend/src/components/ui (compose existing UI components instead).",
+    "Do not modify any files listed in frontend.immutablePaths (use safe alternatives).",
+    "Backend changes are out of scope for this request; the Create Page form should not require new backend APIs to function."
+  ],
+  "nonGoals": [
+    "Implementing full Pages backend storage, querying, followers, roles/permissions, posting, moderation, or analytics.",
+    "Linking Pages to Groups or changing existing Groups backend behavior."
+  ],
+  "imageRequirements": {
+    "required": [
+      "Pages icon, simple flat design (pages-icon.dim_32x32.png)"
+    ],
+    "edits": []
+  }
+}

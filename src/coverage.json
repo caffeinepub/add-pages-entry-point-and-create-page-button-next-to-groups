@@ -1,0 +1,85 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-06T07:00:47.516Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 4,
+    "implemented": 4,
+    "items": [
+      {
+        "id": "REQ-1",
+        "summary": "Add a new primary navigation item labeled \"Pages\" next to the existing \"Groups\" item in the bottom navigation, and make it navigate to a new route at \"/pages\".",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/BottomNav.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/BottomNav.tsx",
+          "frontend/src/App.tsx"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "On the existing Groups page header, add a \"Create Page\" button placed beside the existing \"Create Group\" button; clicking it should navigate users to a new route at \"/pages/create\".",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/GroupsPage.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/GroupsPage.tsx",
+          "frontend/src/App.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Create a new Pages listing screen at route \"/pages\" and a Create Page screen at route \"/pages/create\". The Create Page screen must include a form with the following fields and basic client-side validation: Page Name (required), Category (Politics / News / Business / Community / Public Figure), Description, Profile Image upload, Cover Image upload, Visibility (Public / Private), and a Verification request toggle. Submitting the form should show an English user-facing message indicating the creation flow is not yet persisted (until backend support is implemented).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/PagesPage.tsx",
+          "frontend/src/pages/CreatePagePage.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/PagesPage.tsx",
+          "frontend/src/pages/CreatePagePage.tsx",
+          "frontend/src/App.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Add a new static icon asset for the bottom navigation \"Pages\" item and use it in the same way the existing Groups icon is used (image-based icon).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/public/assets/generated/pages-icon.dim_32x32.png",
+          "frontend/src/components/BottomNav.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/public/assets/generated/pages-icon.dim_32x32.png",
+          "frontend/src/components/BottomNav.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/public/assets/generated/pages-icon.dim_32x32.png",
+    "frontend/src/App.tsx",
+    "frontend/src/components/BottomNav.tsx",
+    "frontend/src/pages/CreatePagePage.tsx",
+    "frontend/src/pages/GroupsPage.tsx",
+    "frontend/src/pages/PagesPage.tsx",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

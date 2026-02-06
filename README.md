@@ -1,2 +1,3 @@
-# add-pages-entry-point-and-create-page-button-next-to-groups
-Exported from Caffeine project: Add Pages entry point and Create Page button next to Groups
+## 
+
+To run app build and run docker image: `docker build -t app . docker run -it --network host app`

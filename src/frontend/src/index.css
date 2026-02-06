@@ -1,0 +1,490 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* CivWorld Blue Theme - Primary blue matching mockup */
+    --primary: 0.45 0.12 250;
+    --primary-foreground: 0.98 0 0;
+    
+    /* Background colors */
+    --background: 0.98 0 0;
+    --foreground: 0.15 0 0;
+    
+    /* Card colors */
+    --card: 1 0 0;
+    --card-foreground: 0.15 0 0;
+    
+    /* Popover colors */
+    --popover: 1 0 0;
+    --popover-foreground: 0.15 0 0;
+    
+    /* Secondary colors */
+    --secondary: 0.92 0.01 250;
+    --secondary-foreground: 0.15 0 0;
+    
+    /* Muted colors - improved contrast */
+    --muted: 0.92 0.01 250;
+    --muted-foreground: 0.45 0.03 250;
+    
+    /* Accent colors */
+    --accent: 0.92 0.01 250;
+    --accent-foreground: 0.15 0 0;
+    
+    /* Destructive colors */
+    --destructive: 0.55 0.22 25;
+    --destructive-foreground: 0.98 0 0;
+    
+    /* Border and input - improved visibility */
+    --border: 0.70 0.02 250;
+    --input: 0.70 0.02 250;
+    --ring: 0.45 0.12 250;
+    
+    /* Chart colors */
+    --chart-1: 0.60 0.15 250;
+    --chart-2: 0.70 0.12 200;
+    --chart-3: 0.65 0.10 150;
+    --chart-4: 0.75 0.08 100;
+    --chart-5: 0.55 0.18 300;
+    
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark mode - adjusted for CivWorld theme */
+    --primary: 0.55 0.15 250;
+    --primary-foreground: 0.98 0 0;
+    
+    --background: 0.15 0.01 250;
+    --foreground: 0.95 0 0;
+    
+    --card: 0.18 0.01 250;
+    --card-foreground: 0.95 0 0;
+    
+    --popover: 0.18 0.01 250;
+    --popover-foreground: 0.95 0 0;
+    
+    --secondary: 0.25 0.02 250;
+    --secondary-foreground: 0.95 0 0;
+    
+    --muted: 0.25 0.02 250;
+    --muted-foreground: 0.65 0.02 250;
+    
+    --accent: 0.25 0.02 250;
+    --accent-foreground: 0.95 0 0;
+    
+    --destructive: 0.50 0.20 25;
+    --destructive-foreground: 0.95 0 0;
+    
+    --border: 0.25 0.02 250;
+    --input: 0.25 0.02 250;
+    --ring: 0.55 0.15 250;
+    
+    --chart-1: 0.65 0.15 250;
+    --chart-2: 0.75 0.12 200;
+    --chart-3: 0.70 0.10 150;
+    --chart-4: 0.80 0.08 100;
+    --chart-5: 0.60 0.18 300;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    /* Remove default blue tap highlight on all elements */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Allow text selection for text content */
+  p, span, h1, h2, h3, h4, h5, h6, li, td, th, label, input, textarea {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    /* Ensure body also has no tap highlight */
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Neutral touch and interaction styling for all interactive elements */
+@layer components {
+  /* Global tap highlight removal and neutral interaction feedback */
+  button,
+  a,
+  [role="button"],
+  [role="tab"],
+  [role="link"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  .clickable {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none;
+    tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: opacity 150ms ease-in-out, background-color 150ms ease-in-out;
+  }
+
+  /* Neutral active/pressed state for buttons */
+  button:active:not(:disabled),
+  [role="button"]:active,
+  input[type="button"]:active,
+  input[type="submit"]:active,
+  input[type="reset"]:active {
+    opacity: 0.8;
+    background-color: oklch(0.88 0.01 250);
+    transition: opacity 100ms ease-in-out, background-color 100ms ease-in-out;
+  }
+
+  /* Neutral active/pressed state for links and tabs */
+  a:active,
+  [role="tab"]:active,
+  [role="link"]:active {
+    opacity: 0.7;
+    transition: opacity 100ms ease-in-out;
+  }
+
+  /* Specific styling for navigation tabs */
+  [role="tab"] {
+    -webkit-tap-highlight-color: transparent !important;
+    tap-highlight-color: transparent !important;
+  }
+
+  [role="tab"]:active {
+    background-color: oklch(0.90 0.01 250);
+    opacity: 0.85;
+  }
+
+  /* Bottom navigation items */
+  .bottom-nav button:active,
+  .bottom-nav a:active {
+    opacity: 0.75;
+    background-color: transparent;
+  }
+
+  /* Header interactive elements */
+  header button:active,
+  header a:active {
+    opacity: 0.8;
+    background-color: oklch(0.40 0.12 250 / 0.1);
+  }
+
+  /* Horizontal navigation tabs */
+  .horizontal-nav button:active,
+  .horizontal-nav [role="tab"]:active {
+    background-color: oklch(0.90 0.01 250);
+    opacity: 0.85;
+  }
+
+  /* Action buttons (Add Your View, Follow, etc.) */
+  .action-button:active {
+    opacity: 0.85;
+    transform: scale(0.98);
+    transition: opacity 100ms ease-in-out, transform 100ms ease-in-out;
+  }
+
+  /* Post interaction buttons (like, comment, share) */
+  .post-action-button:active {
+    opacity: 0.75;
+    background-color: oklch(0.92 0.01 250);
+  }
+
+  /* Trending hashtag pills */
+  .trending-pill:active {
+    opacity: 0.8;
+    background-color: oklch(0.88 0.01 250);
+  }
+
+  /* Modal and dialog buttons */
+  [data-radix-dialog-content] button:active,
+  [data-radix-alert-dialog-content] button:active {
+    opacity: 0.85;
+  }
+
+  /* Form submit buttons */
+  form button[type="submit"]:active {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+
+  /* Ensure no blue highlight on touch for all interactive elements */
+  * {
+    -webkit-tap-highlight-color: transparent !important;
+  }
+}
+
+/* Modal layering and background behavior fixes */
+@layer components {
+  /* Ensure modal overlays have highest z-index */
+  [data-radix-dialog-overlay],
+  [data-radix-alert-dialog-overlay] {
+    z-index: 10000 !important;
+    background-color: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(3px);
+    position: fixed !important;
+    inset: 0 !important;
+  }
+
+  /* Ensure modal content appears above overlay */
+  [data-radix-dialog-content],
+  [data-radix-alert-dialog-content] {
+    z-index: 10001 !important;
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+
+  /* Profile setup modal specific styling */
+  .profile-setup-modal {
+    background: white !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+    border-radius: 0.75rem !important;
+    max-width: 28rem !important;
+    width: 90vw !important;
+    padding: 1.5rem !important;
+  }
+
+  /* Prevent body scroll when modal is open */
+  body:has([data-radix-dialog-overlay]),
+  body:has([data-radix-alert-dialog-overlay]) {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Ensure proper spacing below header and horizontal nav */
+  main {
+    padding-top: 1rem;
+  }
+
+  /* Fix trending section stacking order */
+  .trending-section {
+    position: relative;
+    z-index: 10;
+  }
+
+  /* Ensure header and nav stay below modals */
+  header {
+    position: relative;
+    z-index: 40;
+  }
+
+  .horizontal-nav {
+    position: relative;
+    z-index: 30;
+  }
+
+  .bottom-nav {
+    position: fixed;
+    z-index: 40;
+  }
+
+  /* Improved input and label visibility with high contrast */
+  input,
+  textarea,
+  select {
+    color: oklch(0.15 0 0) !important;
+    border-color: oklch(0.70 0.02 250) !important;
+    border-width: 1px !important;
+    background-color: white !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: oklch(0.50 0.03 250) !important;
+    opacity: 1 !important;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: oklch(0.45 0.12 250) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px oklch(0.45 0.12 250 / 0.2) !important;
+  }
+
+  label {
+    color: oklch(0.15 0 0) !important;
+    font-weight: 600 !important;
+  }
+
+  /* Button visibility improvements */
+  button {
+    font-weight: 500 !important;
+  }
+
+  /* Tab visibility improvements with high contrast */
+  [role="tab"] {
+    font-weight: 500 !important;
+    color: oklch(0.40 0.05 250) !important;
+  }
+
+  [role="tab"][data-state="active"] {
+    color: oklch(0.45 0.12 250) !important;
+    font-weight: 600 !important;
+  }
+
+  [role="tab"][data-state="inactive"] {
+    color: oklch(0.50 0.05 250) !important;
+  }
+}
+
+/* Shimmer animation for trending section updates */
+@keyframes shimmer {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 0.8s ease-in-out;
+}
+
+/* Mobile viewport fixes for modals */
+@media (max-width: 430px) {
+  .profile-setup-modal {
+    max-width: calc(100vw - 2rem) !important;
+    margin: 1rem !important;
+  }
+
+  [data-radix-dialog-content],
+  [data-radix-alert-dialog-content] {
+    max-height: calc(100vh - 4rem) !important;
+    overflow-y: auto !important;
+    width: calc(100vw - 2rem) !important;
+  }
+}
+
+/* Ensure all form elements are immediately visible with high contrast */
+@layer components {
+  .profile-setup-modal input,
+  .profile-setup-modal textarea,
+  .profile-setup-modal button,
+  .profile-setup-modal label {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  .profile-setup-modal input,
+  .profile-setup-modal textarea {
+    background-color: white !important;
+    border: 1px solid oklch(0.70 0.02 250) !important;
+    color: oklch(0.15 0 0) !important;
+  }
+
+  .profile-setup-modal input::placeholder,
+  .profile-setup-modal textarea::placeholder {
+    color: oklch(0.50 0.03 250) !important;
+    opacity: 1 !important;
+  }
+
+  .profile-setup-modal input:focus,
+  .profile-setup-modal textarea:focus {
+    border-color: oklch(0.45 0.12 250) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px oklch(0.45 0.12 250 / 0.2) !important;
+  }
+
+  .profile-setup-modal label {
+    color: oklch(0.15 0 0) !important;
+    font-weight: 600 !important;
+  }
+
+  .profile-setup-modal button {
+    font-weight: 600 !important;
+  }
+}
+
+/* Accessibility improvements for all interactive elements */
+@layer components {
+  /* Ensure all buttons have sufficient contrast */
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Focus visible states for keyboard navigation */
+  *:focus-visible {
+    outline: 2px solid oklch(0.45 0.12 250);
+    outline-offset: 2px;
+  }
+
+  /* Improve link visibility */
+  a {
+    color: oklch(0.45 0.12 250);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+}
+
+/* Mobile-specific touch interaction optimizations */
+@media (max-width: 768px) {
+  /* Ensure no blue tap highlight on mobile */
+  * {
+    -webkit-tap-highlight-color: transparent !important;
+    tap-highlight-color: transparent !important;
+  }
+
+  /* Optimize touch target sizes for mobile */
+  button,
+  a,
+  [role="button"],
+  [role="tab"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Enhanced active states for mobile touch */
+  button:active:not(:disabled),
+  [role="button"]:active {
+    opacity: 0.75;
+    background-color: oklch(0.88 0.01 250);
+    transform: scale(0.98);
+    transition: all 100ms ease-in-out;
+  }
+
+  /* Mobile navigation active states */
+  .bottom-nav button:active {
+    opacity: 0.7;
+    transform: scale(0.95);
+  }
+
+  /* Mobile tab active states */
+  [role="tab"]:active {
+    background-color: oklch(0.88 0.01 250);
+    opacity: 0.8;
+  }
+}
+
+/* Android-specific tap highlight removal */
+@supports (-webkit-touch-callout: none) {
+  * {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+  }
+}
