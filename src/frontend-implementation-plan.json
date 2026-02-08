@@ -1,93 +1,64 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add Pages navigation, Pages routes, and Create Page form UI",
+  "title": "Navigation updates: Profile header button, Logout in Settings, add Reel route",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add a new bottom navigation tab labeled \"Pages\" adjacent to \"Groups\" that routes to \"/pages\" with proper active-state styling.",
+      "summary": "Change the authenticated header primary action from Logout to Profile navigation while keeping Login behavior when unauthenticated.",
       "acceptanceCriteria": [
-        "Bottom navigation shows a \"Pages\" item positioned adjacent to \"Groups\".",
-        "Clicking \"Pages\" navigates to \"/pages\" without errors.",
-        "The active-state styling works for the new \"/pages\" route similarly to existing tabs (e.g., Home/Groups)."
+        "When logged out, the header button label is \"Login\" and it triggers login.",
+        "When logged in, the header button label is \"Profile\" and it navigates to /profile.",
+        "Clicking the header button while logged in does not log the user out."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/BottomNav.tsx",
+          "path": "frontend/src/components/Header.tsx",
           "operation": "modify",
-          "description": "Insert a new \"Pages\" nav item next to the existing \"Groups\" item, configure it to navigate to \"/pages\", and extend the route-aware active-state logic to treat \"/pages\" and nested \"/pages/*\" paths as active; use the new image-based icon asset consistently with the existing Groups icon behavior."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Wire the new \"/pages\" route into the TanStack Router route tree so BottomNav navigation to \"/pages\" renders without errors."
+          "description": "Update the primary header button so unauthenticated state remains \"Login\" and triggers the Internet Identity login flow, while authenticated state shows \"Profile\" and navigates to \"/profile\" (no logout). Use the existing Internet Identity + logout patterns from the authorization component integration; Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Add a \"Create Page\" button in the Groups page header next to \"Create Group\" that navigates to \"/pages/create\" and remains usable on mobile.",
+      "summary": "Ensure Logout remains only in the Settings dropdown and still clears identity and React Query cache.",
       "acceptanceCriteria": [
-        "The Groups page header displays both \"Create Group\" and \"Create Page\" actions side-by-side on desktop widths and remains usable on mobile widths (no overlap/cutoff).",
-        "Clicking \"Create Page\" navigates to \"/pages/create\"."
+        "When logged in, the Settings dropdown contains a menu item labeled \"Logout\".",
+        "Clicking \"Logout\" in Settings logs the user out and clears client-side cached data as it did previously.",
+        "There is no other Logout control shown in the header outside of Settings."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/GroupsPage.tsx",
+          "path": "frontend/src/components/Header.tsx",
           "operation": "modify",
-          "description": "Update the Groups header actions area to include an additional \"Create Page\" button that navigates to \"/pages/create\"; adjust the header layout (e.g., responsive flex wrapping/stacking and spacing) to ensure both actions remain accessible on mobile without overlap/cutoff."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Wire the new \"/pages/create\" route into the router so navigation from the Groups header succeeds."
+          "description": "Keep a Settings (gear) dropdown item labeled \"Logout\" that executes the existing logout behavior (clear Internet Identity + clear React Query cache). Ensure the header primary button is no longer a Logout control. Use the existing logout/cache-clearing approach aligned with the authorization component guidance; Verify the component's usage instructions before implementing."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Create Pages listing screen at \"/pages\" and Create Page screen at \"/pages/create\" with required form fields, basic client-side validation, and a non-persisted submission toast.",
+      "summary": "Add a Reel item after Video in bottom navigation and create a /reel route with a placeholder Reel page.",
       "acceptanceCriteria": [
-        "Navigating to \"/pages\" renders a Pages screen (it may show an empty/placeholder state, but must not crash).",
-        "Navigating to \"/pages/create\" renders the Create Page form with all specified fields.",
-        "Form validation prevents submission when Page Name is empty and displays an English validation message.",
-        "Submitting a valid form shows an English toast/notification that the create flow is not yet persisted, and the app remains stable."
+        "Bottom navigation shows items in an order where \"Reel\" appears directly after \"Video\".",
+        "Tapping/clicking \"Reel\" navigates to /reel without errors.",
+        "/reel renders a placeholder page with English text indicating the feature is coming soon.",
+        "The Reel nav item shows an active state when the current path is /reel."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/PagesPage.tsx",
-          "operation": "create",
-          "description": "Add a new Pages listing screen component for the \"/pages\" route with a stable placeholder/empty state (no backend dependency) and basic UI to indicate the feature area."
+          "path": "frontend/src/components/BottomNav.tsx",
+          "operation": "modify",
+          "description": "Insert a new primary nav item labeled \"Reel\" immediately after the existing \"Video\" item and ensure route-aware active styling works when the current path is \"/reel\"."
         },
         {
-          "path": "frontend/src/pages/CreatePagePage.tsx",
+          "path": "frontend/src/pages/ReelPage.tsx",
           "operation": "create",
-          "description": "Add a Create Page screen for the \"/pages/create\" route that renders a form with: Page Name (required), Category (Politics/News/Business/Community/Public Figure), Description, Profile Image upload, Cover Image upload, Visibility (Public/Private), and a Verification request toggle; implement basic client-side validation that blocks submission when Page Name is empty and shows an English validation message; on valid submit, show an English toast/notification indicating creation is not yet persisted (no backend calls)."
+          "description": "Create a Reel placeholder page under frontend/src/pages with English user-facing text indicating the Reel feed is coming soon, matching the overall structure/visual pattern of the existing Video placeholder page."
         },
         {
           "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Register and wire the new \"/pages\" and \"/pages/create\" routes to the newly created PagesPage and CreatePagePage components in the TanStack Router route tree."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Add and use a new static image icon asset for the bottom navigation \"Pages\" tab with the same active/inactive behavior as the Groups icon.",
-      "acceptanceCriteria": [
-        "A new icon file exists under frontend/public/assets/generated and is referenced by the bottom navigation for the \"Pages\" tab.",
-        "The icon renders correctly in the bottom navigation and follows the same active/inactive behavior as the Groups icon."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/public/assets/generated/pages-icon.dim_32x32.png",
-          "operation": "create",
-          "description": "Add the generated Pages icon asset file at the exact path frontend/public/assets/generated/pages-icon.dim_32x32.png for use by the bottom navigation."
-        },
-        {
-          "path": "frontend/src/components/BottomNav.tsx",
-          "operation": "modify",
-          "description": "Reference frontend/public/assets/generated/pages-icon.dim_32x32.png for the new \"Pages\" bottom nav item and ensure it follows the same image-based icon rendering and active/inactive styling pattern used for the Groups icon."
+          "description": "Register a new route at path \"/reel\" that renders the new Reel page, and wire the page import into the existing router configuration."
         }
       ]
     }

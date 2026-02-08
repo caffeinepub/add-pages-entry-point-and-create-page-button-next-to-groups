@@ -1,93 +1,85 @@
 {
   "kind": "build_request",
-  "title": "Add Pages entry point and Create Page button next to Groups",
+  "title": "Update navigation: move Logout into Settings, add Profile in header, and add Reels after Video",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add a new primary navigation item labeled \"Pages\" next to the existing \"Groups\" item in the bottom navigation, and make it navigate to a new route at \"/pages\".",
+      "text": "In the top header (frontend/src/components/Header.tsx), replace the authenticated-state primary button text/action from \"Logout\" to \"Profile\" so that when the user is authenticated it navigates to \"/profile\" instead of logging out. When the user is not authenticated, the button must remain \"Login\" and must continue to trigger the Internet Identity login flow.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "create page button beside of groups button where users can create pages"
+          "In settings button we have logout option so keep logout option in settings and replace logout with profile at top add reel button after videos"
         ]
       },
       "acceptanceCriteria": [
-        "Bottom navigation shows a \"Pages\" item positioned adjacent to \"Groups\".",
-        "Clicking \"Pages\" navigates to \"/pages\" without errors.",
-        "The active-state styling works for the new \"/pages\" route similarly to existing tabs (e.g., Home/Groups)."
+        "When logged out, the header button label is \"Login\" and it triggers login.",
+        "When logged in, the header button label is \"Profile\" and it navigates to /profile.",
+        "Clicking the header button while logged in does not log the user out."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "On the existing Groups page header, add a \"Create Page\" button placed beside the existing \"Create Group\" button; clicking it should navigate users to a new route at \"/pages/create\".",
+      "text": "Keep the Logout action available under the Settings (gear) menu in the header (frontend/src/components/Header.tsx) and ensure it still logs the user out (clears identity and clears React Query cache) when clicked.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "create page button beside of groups button where users can create pages"
+          "In settings button we have logout option so keep logout option in settings"
         ]
       },
       "acceptanceCriteria": [
-        "The Groups page header displays both \"Create Group\" and \"Create Page\" actions side-by-side on desktop widths and remains usable on mobile widths (no overlap/cutoff).",
-        "Clicking \"Create Page\" navigates to \"/pages/create\"."
+        "When logged in, the Settings dropdown contains a menu item labeled \"Logout\".",
+        "Clicking \"Logout\" in Settings logs the user out and clears client-side cached data as it did previously.",
+        "There is no other Logout control shown in the header outside of Settings."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Create a new Pages listing screen at route \"/pages\" and a Create Page screen at route \"/pages/create\". The Create Page screen must include a form with the following fields and basic client-side validation: Page Name (required), Category (Politics / News / Business / Community / Public Figure), Description, Profile Image upload, Cover Image upload, Visibility (Public / Private), and a Verification request toggle. Submitting the form should show an English user-facing message indicating the creation flow is not yet persisted (until backend support is implemented).",
+      "text": "Add a new primary navigation item labeled \"Reel\" positioned immediately after \"Video\" in the bottom navigation (frontend/src/components/BottomNav.tsx). Create a new route at \"/reel\" in the router (frontend/src/App.tsx) and implement a placeholder Reel page (new file under frontend/src/pages) with English user-facing text indicating the Reel feed is coming soon, similar in structure to the existing Video placeholder page.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "create page button beside of groups button where users can create pages"
+          "add reel button after videos"
         ]
       },
       "acceptanceCriteria": [
-        "Navigating to \"/pages\" renders a Pages screen (it may show an empty/placeholder state, but must not crash).",
-        "Navigating to \"/pages/create\" renders the Create Page form with all specified fields.",
-        "Form validation prevents submission when Page Name is empty and displays an English validation message.",
-        "Submitting a valid form shows an English toast/notification that the create flow is not yet persisted, and the app remains stable."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Add a new static icon asset for the bottom navigation \"Pages\" item and use it in the same way the existing Groups icon is used (image-based icon).",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "create page button beside of groups button where users can create pages"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A new icon file exists under frontend/public/assets/generated and is referenced by the bottom navigation for the \"Pages\" tab.",
-        "The icon renders correctly in the bottom navigation and follows the same active/inactive behavior as the Groups icon."
+        "Bottom navigation shows items in an order where \"Reel\" appears directly after \"Video\".",
+        "Tapping/clicking \"Reel\" navigates to /reel without errors.",
+        "/reel renders a placeholder page with English text indicating the feature is coming soon.",
+        "The Reel nav item shows an active state when the current path is /reel."
       ]
     }
   ],
   "constraints": [
-    "Do not modify any files under frontend/src/components/ui (compose existing UI components instead).",
-    "Do not modify any files listed in frontend.immutablePaths (use safe alternatives).",
-    "Backend changes are out of scope for this request; the Create Page form should not require new backend APIs to function."
+    "Do not edit any files under frontend/src/components/ui or any other paths listed as immutable in SYSTEM_CONTEXT.",
+    "Backend must remain single-actor; no backend changes are required for this request."
   ],
   "nonGoals": [
-    "Implementing full Pages backend storage, querying, followers, roles/permissions, posting, moderation, or analytics.",
-    "Linking Pages to Groups or changing existing Groups backend behavior."
+    "Implementing an actual reels/video feed experience (uploading, playback, infinite scrolling, recommendations).",
+    "Changing authentication providers or adding third-party auth beyond Internet Identity.",
+    "Any new backend data models or persistence for reels."
   ],
   "imageRequirements": {
-    "required": [
-      "Pages icon, simple flat design (pages-icon.dim_32x32.png)"
-    ],
+    "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

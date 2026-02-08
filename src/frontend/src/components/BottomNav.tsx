@@ -1,5 +1,5 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router';
-import { Home, Video, User, Calendar } from 'lucide-react';
+import { Home, Video, User, Calendar, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function BottomNav() {
@@ -10,6 +10,7 @@ export default function BottomNav() {
   const navItems = [
     { path: '/', icon: Home, label: 'Home', type: 'lucide' as const },
     { path: '/video', icon: Video, label: 'Video', type: 'lucide' as const },
+    { path: '/reel', icon: Film, label: 'Reel', type: 'lucide' as const },
     { path: '/events', icon: Calendar, label: 'Events', type: 'lucide' as const },
     { path: '/groups', iconSrc: '/assets/generated/groups-icon.dim_32x32.png', label: 'Groups', type: 'image' as const },
     { path: '/pages', iconSrc: '/assets/generated/pages-icon.dim_32x32.png', label: 'Pages', type: 'image' as const },

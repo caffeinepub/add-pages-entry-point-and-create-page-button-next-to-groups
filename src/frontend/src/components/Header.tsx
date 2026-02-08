@@ -36,10 +36,9 @@ export default function Header({ onNavigateToMessages, showMessagesButton = fals
 
   const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
 
-  const handleAuth = async () => {
+  const handleAuthOrProfile = async () => {
     if (isAuthenticated) {
-      await clear();
-      queryClient.clear();
+      navigate({ to: '/profile' });
     } else {
       try {
         await login();
@@ -51,6 +50,11 @@ export default function Header({ onNavigateToMessages, showMessagesButton = fals
         }
       }
     }
+  };
+
+  const handleLogout = async () => {
+    await clear();
+    queryClient.clear();
   };
 
   const handleNotificationClick = () => {
@@ -140,13 +144,13 @@ export default function Header({ onNavigateToMessages, showMessagesButton = fals
           )}
 
           <Button
-            onClick={handleAuth}
+            onClick={handleAuthOrProfile}
             disabled={disabled}
             variant="secondary"
             size="sm"
             className="bg-white/10 hover:bg-white/20 text-white border-white/20"
           >
-            {disabled ? 'Logging in...' : isAuthenticated ? 'Logout' : 'Login'}
+            {disabled ? 'Logging in...' : isAuthenticated ? 'Profile' : 'Login'}
           </Button>
 
           {isAuthenticated && (
@@ -161,7 +165,7 @@ export default function Header({ onNavigateToMessages, showMessagesButton = fals
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleAuth}>
+                <DropdownMenuItem onClick={handleLogout}>
                   Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>

@@ -9,6 +9,7 @@ import HorizontalNav from './components/HorizontalNav';
 import BottomNav from './components/BottomNav';
 import HomePage from './pages/HomePage';
 import VideoPage from './pages/VideoPage';
+import ReelPage from './pages/ReelPage';
 import EventsPage from './pages/EventsPage';
 import GroupsPage from './pages/GroupsPage';
 import GroupDetailPage from './pages/GroupDetailPage';
@@ -87,6 +88,12 @@ const videoRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/video',
   component: VideoPage,
+});
+
+const reelRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/reel',
+  component: ReelPage,
 });
 
 const eventsRoute = createRoute({
@@ -176,6 +183,7 @@ const discussionsRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   homeRoute,
   videoRoute,
+  reelRoute,
   eventsRoute,
   groupsRoute,
   groupDetailRoute,

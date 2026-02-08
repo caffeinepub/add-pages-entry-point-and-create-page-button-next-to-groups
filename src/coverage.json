@@ -1,82 +1,64 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-06T07:00:47.516Z",
+  "generatedAt": "2026-02-08T03:05:13.441Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 4,
+    "total": 3,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add a new primary navigation item labeled \"Pages\" next to the existing \"Groups\" item in the bottom navigation, and make it navigate to a new route at \"/pages\".",
+        "summary": "In the top header (frontend/src/components/Header.tsx), replace the authenticated-state primary button text/action from \"Logout\" to \"Profile\" so that when the user is authenticated it navigates to \"/profile\" instead of logging out. When the user is not authenticated, the button must remain \"Login\" and must continue to trigger the Internet Identity login flow.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/BottomNav.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/components/Header.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/BottomNav.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/components/Header.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "On the existing Groups page header, add a \"Create Page\" button placed beside the existing \"Create Group\" button; clicking it should navigate users to a new route at \"/pages/create\".",
+        "summary": "Keep the Logout action available under the Settings (gear) menu in the header (frontend/src/components/Header.tsx) and ensure it still logs the user out (clears identity and clears React Query cache) when clicked.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/GroupsPage.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/components/Header.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/GroupsPage.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/components/Header.tsx"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Create a new Pages listing screen at route \"/pages\" and a Create Page screen at route \"/pages/create\". The Create Page screen must include a form with the following fields and basic client-side validation: Page Name (required), Category (Politics / News / Business / Community / Public Figure), Description, Profile Image upload, Cover Image upload, Visibility (Public / Private), and a Verification request toggle. Submitting the form should show an English user-facing message indicating the creation flow is not yet persisted (until backend support is implemented).",
+        "summary": "Add a new primary navigation item labeled \"Reel\" positioned immediately after \"Video\" in the bottom navigation (frontend/src/components/BottomNav.tsx). Create a new route at \"/reel\" in the router (frontend/src/App.tsx) and implement a placeholder Reel page (new file under frontend/src/pages) with English user-facing text indicating the Reel feed is coming soon, similar in structure to the existing Video placeholder page.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/PagesPage.tsx",
-          "frontend/src/pages/CreatePagePage.tsx",
+          "frontend/src/components/BottomNav.tsx",
+          "frontend/src/pages/ReelPage.tsx",
           "frontend/src/App.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/PagesPage.tsx",
-          "frontend/src/pages/CreatePagePage.tsx",
+          "frontend/src/components/BottomNav.tsx",
+          "frontend/src/pages/ReelPage.tsx",
           "frontend/src/App.tsx"
-        ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Add a new static icon asset for the bottom navigation \"Pages\" item and use it in the same way the existing Groups icon is used (image-based icon).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/public/assets/generated/pages-icon.dim_32x32.png",
-          "frontend/src/components/BottomNav.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/public/assets/generated/pages-icon.dim_32x32.png",
-          "frontend/src/components/BottomNav.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
     "build-request.json",
+    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/public/assets/generated/pages-icon.dim_32x32.png",
     "frontend/src/App.tsx",
     "frontend/src/components/BottomNav.tsx",
-    "frontend/src/pages/CreatePagePage.tsx",
-    "frontend/src/pages/GroupsPage.tsx",
-    "frontend/src/pages/PagesPage.tsx",
+    "frontend/src/components/Header.tsx",
+    "frontend/src/pages/ReelPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

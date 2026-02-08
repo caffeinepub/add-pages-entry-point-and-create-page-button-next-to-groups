@@ -2,11 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-a-new-primary-navigation-item-labeled-pages-next-to-the-existing-groups-item-in-the-bottom-navigation-and-make-it-navigate-to-a-new-route-at-pages",
-      "featureTitle": "Add a new primary navigation item labeled \"Pages\" next to the existing \"Groups\" item in the bottom navigation, and make it navigate to a new route at \"/pages\".",
+      "featureId": "feature-in-the-top-header-frontend-src-components-header-tsx-replace-the-authenticated-state-primary-button-text-action-from-logout-to-profile-so-that-when-the-user-is-authenticated-it-navigates-to-profile-instead-of-logging-out-when-the-user-is-not-authenticated-the-button-must-remain-login-and-must-continue-to-trigger-the-internet-identity-login-flow",
+      "featureTitle": "In the top header (frontend/src/components/Header.tsx), replace the authenticated-state primary button text/action from \"Logout\" to \"Profile\" so that when the user is authenticated it navigates to \"/profile\" instead of logging out. When the user is not authenticated, the button must remain \"Login\" and must continue to trigger the Internet Identity login flow.",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/BottomNav.tsx"
+        "frontend/src/components/Header.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -23,11 +22,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-on-the-existing-groups-page-header-add-a-create-page-button-placed-beside-the-existing-create-group-button-clicking-it-should-navigate-users-to-a-new-route-at-pages-create",
-      "featureTitle": "On the existing Groups page header, add a \"Create Page\" button placed beside the existing \"Create Group\" button; clicking it should navigate users to a new route at \"/pages/create\".",
+      "featureId": "feature-keep-the-logout-action-available-under-the-settings-gear-menu-in-the-header-frontend-src-components-header-tsx-and-ensure-it-still-logs-the-user-out-clears-identity-and-clears-react-query-cache-when-clicked",
+      "featureTitle": "Keep the Logout action available under the Settings (gear) menu in the header (frontend/src/components/Header.tsx) and ensure it still logs the user out (clears identity and clears React Query cache) when clicked.",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/pages/GroupsPage.tsx"
+        "frontend/src/components/Header.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -44,12 +42,12 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-create-a-new-pages-listing-screen-at-route-pages-and-a-create-page-screen-at-route-pages-create-the-create-page-screen-must-include-a-form-with-the-following-fields-and-basic-client-side-validation-page-name-required-category-politics-news-business-community-public-figure-description-profile-image-upload-cover-image-upload-visibility-public-private-and-a-verification-request-toggle-submitting-the-form-should-show-an-english-user-facing-message-indicating-the-creation-flow-is-not-yet-persisted-until-backend-support-is-implemented",
-      "featureTitle": "Create a new Pages listing screen at route \"/pages\" and a Create Page screen at route \"/pages/create\". The Create Page screen must include a form with the following fields and basic client-side validation: Page Name (required), Category (Politics / News / Business / Community / Public Figure), Description, Profile Image upload, Cover Image upload, Visibility (Public / Private), and a Verification request toggle. Submitting the form should show an English user-facing message indicating the creation flow is not yet persisted (until backend support is implemented).",
+      "featureId": "feature-add-a-new-primary-navigation-item-labeled-reel-positioned-immediately-after-video-in-the-bottom-navigation-frontend-src-components-bottomnav-tsx-create-a-new-route-at-reel-in-the-router-frontend-src-app-tsx-and-implement-a-placeholder-reel-page-new-file-under-frontend-src-pages-with-english-user-facing-text-indicating-the-reel-feed-is-coming-soon-similar-in-structure-to-the-existing-video-placeholder-page",
+      "featureTitle": "Add a new primary navigation item labeled \"Reel\" positioned immediately after \"Video\" in the bottom navigation (frontend/src/components/BottomNav.tsx). Create a new route at \"/reel\" in the router (frontend/src/App.tsx) and implement a placeholder Reel page (new file under frontend/src/pages) with English user-facing text indicating the Reel feed is coming soon, similar in structure to the existing Video placeholder page.",
       "files": [
         "frontend/src/App.tsx",
-        "frontend/src/pages/CreatePagePage.tsx",
-        "frontend/src/pages/PagesPage.tsx"
+        "frontend/src/components/BottomNav.tsx",
+        "frontend/src/pages/ReelPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -62,26 +60,6 @@
       ],
       "testIds": [
         "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-a-new-static-icon-asset-for-the-bottom-navigation-pages-item-and-use-it-in-the-same-way-the-existing-groups-icon-is-used-image-based-icon",
-      "featureTitle": "Add a new static icon asset for the bottom navigation \"Pages\" item and use it in the same way the existing Groups icon is used (image-based icon).",
-      "files": [
-        "frontend/src/components/BottomNav.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
       ],
       "confidence": "high"
     }

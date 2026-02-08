@@ -1,45 +1,32 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Implement a standalone \"Pages\" feature as a first-class module (independent of Groups), including main navigation entry, page discovery/listing, page creation flow, roles & permissions, page posting and profile experience, moderation tools, and supporting backend/data structures (followers, analytics, verification, scalability/future monetization readiness).",
-  "architectural_notes": [
-    "Pages must be a standalone domain (separate Pages table and unique Page ID; not linked to Groups).",
-    "Implement role-based access control for Page roles (Owner/Admin/Editor) and platform admin moderation actions.",
-    "Page followers mapping and page analytics (reach/engagement/follower growth) should be supported in backend design."
-  ],
+  "summary": "Rebuild and update app UI/navigation: keep Logout in Settings, add Profile at top, and add a Reel button after Videos.",
+  "architectural_notes": [],
   "known_issues": [],
   "isFixRequest": false,
-  "imageRequirements": "## Required Images\n- Pages icon, simple flat design (pages-icon.dim_32x32.png)",
   "existing_features": [
     {
-      "id": "feature-add-a-new-primary-navigation-item-labeled-pages-next-to-the-existing-groups-item-in-the-bottom-navigation-and-make-it-navigate-to-a-new-route-at-pages",
-      "title": "Add a new primary navigation item labeled \"Pages\" next to the existing \"Groups\" item in the bottom navigation, and make it navigate to a new route at \"/pages\".",
+      "id": "feature-in-the-top-header-frontend-src-components-header-tsx-replace-the-authenticated-state-primary-button-text-action-from-logout-to-profile-so-that-when-the-user-is-authenticated-it-navigates-to-profile-instead-of-logging-out-when-the-user-is-not-authenticated-the-button-must-remain-login-and-must-continue-to-trigger-the-internet-identity-login-flow",
+      "title": "In the top header (frontend/src/components/Header.tsx), replace the authenticated-state primary button text/action from \"Logout\" to \"Profile\" so that when the user is authenticated it navigates to \"/profile\" instead of logging out. When the user is not authenticated, the button must remain \"Login\" and must continue to trigger the Internet Identity login flow.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-on-the-existing-groups-page-header-add-a-create-page-button-placed-beside-the-existing-create-group-button-clicking-it-should-navigate-users-to-a-new-route-at-pages-create",
-      "title": "On the existing Groups page header, add a \"Create Page\" button placed beside the existing \"Create Group\" button; clicking it should navigate users to a new route at \"/pages/create\".",
+      "id": "feature-keep-the-logout-action-available-under-the-settings-gear-menu-in-the-header-frontend-src-components-header-tsx-and-ensure-it-still-logs-the-user-out-clears-identity-and-clears-react-query-cache-when-clicked",
+      "title": "Keep the Logout action available under the Settings (gear) menu in the header (frontend/src/components/Header.tsx) and ensure it still logs the user out (clears identity and clears React Query cache) when clicked.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-create-a-new-pages-listing-screen-at-route-pages-and-a-create-page-screen-at-route-pages-create-the-create-page-screen-must-include-a-form-with-the-following-fields-and-basic-client-side-validation-page-name-required-category-politics-news-business-community-public-figure-description-profile-image-upload-cover-image-upload-visibility-public-private-and-a-verification-request-toggle-submitting-the-form-should-show-an-english-user-facing-message-indicating-the-creation-flow-is-not-yet-persisted-until-backend-support-is-implemented",
-      "title": "Create a new Pages listing screen at route \"/pages\" and a Create Page screen at route \"/pages/create\". The Create Page screen must include a form with the following fields and basic client-side validation: Page Name (required), Category (Politics / News / Business / Community / Public Figure), Description, Profile Image upload, Cover Image upload, Visibility (Public / Private), and a Verification request toggle. Submitting the form should show an English user-facing message indicating the creation flow is not yet persisted (until backend support is implemented).",
+      "id": "feature-add-a-new-primary-navigation-item-labeled-reel-positioned-immediately-after-video-in-the-bottom-navigation-frontend-src-components-bottomnav-tsx-create-a-new-route-at-reel-in-the-router-frontend-src-app-tsx-and-implement-a-placeholder-reel-page-new-file-under-frontend-src-pages-with-english-user-facing-text-indicating-the-reel-feed-is-coming-soon-similar-in-structure-to-the-existing-video-placeholder-page",
+      "title": "Add a new primary navigation item labeled \"Reel\" positioned immediately after \"Video\" in the bottom navigation (frontend/src/components/BottomNav.tsx). Create a new route at \"/reel\" in the router (frontend/src/App.tsx) and implement a placeholder Reel page (new file under frontend/src/pages) with English user-facing text indicating the Reel feed is coming soon, similar in structure to the existing Video placeholder page.",
       "reqIds": [
         "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-a-new-static-icon-asset-for-the-bottom-navigation-pages-item-and-use-it-in-the-same-way-the-existing-groups-icon-is-used-image-based-icon",
-      "title": "Add a new static icon asset for the bottom navigation \"Pages\" item and use it in the same way the existing Groups icon is used (image-based icon).",
-      "reqIds": [
-        "REQ-4"
       ],
       "version": 1
     }
@@ -47,18 +34,24 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Standalone Pages module (independent of Groups) with listing, create flow, roles/permissions, posting, profile tabs, moderation, and backend tables/mappings/analytics",
+      "summary": "Keep Logout option in Settings (do not remove it from Settings).",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Add a \"Create Page\" button beside the Groups button so users can create Pages from that entry point",
+      "summary": "Replace the top-level Logout with a Profile option at the top of the UI/navigation.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Add a Reel button after the Videos section/button.",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "Add Pages entry point and Create Page button next to Groups",
+  "projectName": "Update navigation: move Logout into Settings, add Profile in header, and add Reels after Video",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }
