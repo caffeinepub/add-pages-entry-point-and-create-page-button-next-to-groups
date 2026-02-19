@@ -1,11 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Adjust navigation so Profile is accessible from the header when logged in, keep Logout in Settings, and add a new Reel section to the bottom navigation.
+**Goal:** Implement scrollable, searchable location dropdowns with cascading behavior for improved mobile UX.
 
 **Planned changes:**
-- Update the authenticated-state header primary button to show “Profile” and navigate to `/profile`, while keeping “Login” behavior unchanged when logged out.
-- Ensure “Logout” remains available only inside the header Settings (gear) dropdown and continues to fully log the user out (including clearing cached client data).
-- Add a new bottom navigation item labeled “Reel” immediately after “Video”, plus a new `/reel` route and a placeholder Reel page indicating the feed is coming soon.
+- Add smooth vertical scrolling to all location dropdowns (State, District, MP, MLA, Mandal, Village) with max-height set to 60-70% of screen height
+- Implement search/filter functionality inside each location dropdown for real-time filtering
+- Ensure cascading location selection works correctly: Country → State → District → MP → MLA → Mandal → Village, with each level loading data based on parent selection
+- Fix mobile responsiveness and touch-friendly scrolling, resolving any z-index or overflow CSS issues
+- Optimize dropdown rendering performance to prevent UI freezing with large datasets on Android devices
 
-**User-visible outcome:** Logged-in users see a “Profile” button in the header that opens their profile page, Logout is found under Settings, and a new “Reel” tab appears after “Video” leading to a coming-soon Reel page.
+**User-visible outcome:** Users can smoothly scroll through long location lists, quickly search for locations using the filter, and select their location through the cascading dropdown system without UI freezes or interaction issues on mobile devices.

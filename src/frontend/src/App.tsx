@@ -13,6 +13,7 @@ import ReelPage from './pages/ReelPage';
 import EventsPage from './pages/EventsPage';
 import GroupsPage from './pages/GroupsPage';
 import GroupDetailPage from './pages/GroupDetailPage';
+import GroupsAndPagesPage from './pages/GroupsAndPagesPage';
 import PagesPage from './pages/PagesPage';
 import CreatePagePage from './pages/CreatePagePage';
 import ProfilePage from './pages/ProfilePage';
@@ -24,6 +25,7 @@ import PollsPage from './pages/PollsPage';
 import CreatePollPage from './pages/CreatePollPage';
 import MyConstituencyPage from './pages/MyConstituencyPage';
 import DiscussionsPage from './pages/DiscussionsPage';
+import WalletPage from './pages/WalletPage';
 import { isCapacitor } from './capacitor/runtime';
 import { installInternetIdentityShim } from './capacitor/iiWindowOpenShim';
 import { useEffect } from 'react';
@@ -114,6 +116,12 @@ const groupDetailRoute = createRoute({
   component: GroupDetailPage,
 });
 
+const groupsAndPagesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/groups-and-pages',
+  component: GroupsAndPagesPage,
+});
+
 const pagesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/pages',
@@ -180,6 +188,12 @@ const discussionsRoute = createRoute({
   component: DiscussionsPage,
 });
 
+const walletRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/wallet',
+  component: WalletPage,
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   videoRoute,
@@ -187,6 +201,7 @@ const routeTree = rootRoute.addChildren([
   eventsRoute,
   groupsRoute,
   groupDetailRoute,
+  groupsAndPagesRoute,
   pagesRoute,
   createPageRoute,
   profileRoute,
@@ -198,6 +213,7 @@ const routeTree = rootRoute.addChildren([
   createPollRoute,
   myConstituencyRoute,
   discussionsRoute,
+  walletRoute,
 ]);
 
 // Use hash history for Capacitor to avoid blank pages on navigation

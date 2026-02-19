@@ -8,13 +8,9 @@ import Map "mo:core/Map";
 import Array "mo:core/Array";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
-import Iter "mo:core/Iter";
-import Int "mo:core/Int";
 import Text "mo:core/Text";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
-
-
 
 actor {
   include MixinStorage();
@@ -278,6 +274,56 @@ actor {
     quizzesCompleted : [Nat];
   };
 
+  // Location Models
+  public type Country = {
+    code : Text;
+    name : Text;
+    region : Text;
+    subRegion : Text;
+    continent : Text;
+  };
+
+  public type LevelHierarchy = {
+    level : Nat;
+    name : Text;
+  };
+
+  public type Location = {
+    id : Nat;
+    code : Text;
+    name : Text;
+    countryCode : Text;
+    level : Nat;
+    parentLocationId : ?Nat;
+    children : [Nat];
+    hierarchy : [LevelHierarchy];
+  };
+
+  public type LocationQuery = {
+    countryCode : Text;
+    level : Nat;
+    parentId : ?Nat;
+    maxResults : ?Nat;
+    filterBy : ?Text;
+    searchText : ?Text;
+  };
+
+  public type LocationQueryResult = {
+    status : Text;
+    message : Text;
+    locations : [Location];
+  };
+
+  public type HierarchyResponse = {
+    countryCode : Text;
+    hierarchy : [LevelHierarchy];
+  };
+
+  // Location Constants
+  var countries : [Country] = [];
+  var countryHierarchies : [HierarchyResponse] = [];
+  var locations : [Location] = [];
+
   var postCounter = 0;
   var pollCounter = 0;
   var messageCounter = 0;
@@ -448,6 +494,87 @@ actor {
     };
   };
 
+  // --- Location API Functions ---
+  // These are public read-only functions accessible to all users including guests
+  public query ({ caller }) func getCountries() : async [Text] {
+    ["IN"];
+  };
+
+  public query ({ caller }) func getStatesByCountry(_country : Text) : async [Text] {
+    [
+      "Andhra Pradesh",
+      "Arunachal Pradesh",
+      "Assam",
+      "Bihar",
+      "Chhattisgarh",
+      "Goa",
+      "Gujarat",
+      "Haryana",
+      "Himachal Pradesh",
+      "Jharkhand",
+      "Karnataka",
+      "Kerala",
+      "Madhya Pradesh",
+      "Maharashtra",
+      "Manipur",
+      "Meghalaya",
+      "Mizoram",
+      "Nagaland",
+      "Odisha",
+      "Punjab",
+      "Rajasthan",
+      "Sikkim",
+      "Tamil Nadu",
+      "Telangana",
+      "Tripura",
+      "Uttar Pradesh",
+      "Uttarakhand",
+      "West Bengal",
+      "Andaman and Nicobar Islands",
+      "Chandigarh",
+      "Dadra and Nagar Haveli and Daman and Diu",
+      "Delhi",
+      "Jammu and Kashmir",
+      "Ladakh",
+      "Lakshadweep",
+      "Puducherry"
+    ];
+  };
+
+  public query ({ caller }) func getDistrictsByState(state : Text) : async [Text] {
+    if (state == "Tamil Nadu") {
+      return [
+        "Ariyalur",
+        "Chengalpattu",
+        "Chennai",
+        "Coimbatore",
+        "Cuddalore",
+        "Dharmapuri",
+        "Dindigul",
+        "Erode",
+        "Kallakurichi",
+        "Kanchipuram",
+        "Kanyakumari",
+        "Karur",
+        "Krishnagiri",
+        "Madurai",
+        "Mayiladuthurai",
+        "Nagapattinam",
+        "Namakkal",
+        "Nilgiris",
+        "Perambalur",
+        "Pudukkottai",
+        "Ramanathapuram",
+        "Ranipet",
+        "Salem",
+        "Sivaganga"
+      ];
+    } else {
+      return [];
+    };
+  };
+
+  // User Profile Functions
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can access profiles");
@@ -456,6 +583,9 @@ actor {
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
+    };
     userProfiles.get(user);
   };
 

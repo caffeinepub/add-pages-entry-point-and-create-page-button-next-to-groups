@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-in-the-top-header-frontend-src-components-header-tsx-replace-the-authenticated-state-primary-button-text-action-from-logout-to-profile-so-that-when-the-user-is-authenticated-it-navigates-to-profile-instead-of-logging-out-when-the-user-is-not-authenticated-the-button-must-remain-login-and-must-continue-to-trigger-the-internet-identity-login-flow",
-      "featureTitle": "In the top header (frontend/src/components/Header.tsx), replace the authenticated-state primary button text/action from \"Logout\" to \"Profile\" so that when the user is authenticated it navigates to \"/profile\" instead of logging out. When the user is not authenticated, the button must remain \"Login\" and must continue to trigger the Internet Identity login flow.",
+      "featureId": "feature-make-the-state-dropdown-fully-scrollable-with-smooth-vertical-scrolling-when-the-list-exceeds-screen-height-apply-max-height-of-60-70-of-screen-height-to-the-dropdown-list-container",
+      "featureTitle": "Make the State dropdown fully scrollable with smooth vertical scrolling when the list exceeds screen height. Apply max-height of 60-70% of screen height to the dropdown list container.",
       "files": [
-        "frontend/src/components/Header.tsx"
+        "frontend/src/components/HierarchicalLocationSelector.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -22,10 +22,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-keep-the-logout-action-available-under-the-settings-gear-menu-in-the-header-frontend-src-components-header-tsx-and-ensure-it-still-logs-the-user-out-clears-identity-and-clears-react-query-cache-when-clicked",
-      "featureTitle": "Keep the Logout action available under the Settings (gear) menu in the header (frontend/src/components/Header.tsx) and ensure it still logs the user out (clears identity and clears React Query cache) when clicked.",
+      "featureId": "feature-add-search-filter-functionality-inside-the-state-dropdown-for-better-ux-users-should-be-able-to-type-to-filter-the-list-of-states-in-real-time",
+      "featureTitle": "Add search/filter functionality inside the State dropdown for better UX. Users should be able to type to filter the list of states in real-time.",
       "files": [
-        "frontend/src/components/Header.tsx"
+        "frontend/src/components/HierarchicalLocationSelector.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -42,12 +42,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-a-new-primary-navigation-item-labeled-reel-positioned-immediately-after-video-in-the-bottom-navigation-frontend-src-components-bottomnav-tsx-create-a-new-route-at-reel-in-the-router-frontend-src-app-tsx-and-implement-a-placeholder-reel-page-new-file-under-frontend-src-pages-with-english-user-facing-text-indicating-the-reel-feed-is-coming-soon-similar-in-structure-to-the-existing-video-placeholder-page",
-      "featureTitle": "Add a new primary navigation item labeled \"Reel\" positioned immediately after \"Video\" in the bottom navigation (frontend/src/components/BottomNav.tsx). Create a new route at \"/reel\" in the router (frontend/src/App.tsx) and implement a placeholder Reel page (new file under frontend/src/pages) with English user-facing text indicating the Reel feed is coming soon, similar in structure to the existing Video placeholder page.",
+      "featureId": "feature-ensure-cascading-location-selection-behavior-works-correctly-when-country-india-load-all-indian-states-when-state-is-selected-load-districts-under-that-state-when-district-is-selected-load-mp-constituencies-when-mp-is-selected-load-mla-constituencies-then-mandal-then-village",
+      "featureTitle": "Ensure cascading location selection behavior works correctly: When Country = India, load all Indian states; when State is selected, load districts under that state; when District is selected, load MP constituencies; when MP is selected, load MLA constituencies; then Mandal, then Village.",
       "files": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/BottomNav.tsx",
-        "frontend/src/pages/ReelPage.tsx"
+        "frontend/src/components/HierarchicalLocationSelector.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -60,6 +58,66 @@
       ],
       "testIds": [
         "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-apply-the-same-scroll-behavior-smooth-vertical-scroll-max-height-60-70-of-screen-search-filter-functionality-to-all-location-dropdowns-state-district-mp-mla-mandal-and-village",
+      "featureTitle": "Apply the same scroll behavior (smooth vertical scroll, max-height 60-70% of screen, search/filter functionality) to all location dropdowns: State, District, MP, MLA, Mandal, and Village.",
+      "files": [
+        "frontend/src/components/HierarchicalLocationSelector.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-mobile-responsive-and-touch-friendly-scrolling-for-all-location-dropdowns-fix-any-z-index-or-overflow-css-issues-that-prevent-clicks-or-selections",
+      "featureTitle": "Ensure mobile-responsive and touch-friendly scrolling for all location dropdowns. Fix any z-index or overflow CSS issues that prevent clicks or selections.",
+      "files": [
+        "frontend/src/components/HierarchicalLocationSelector.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-optimize-dropdown-rendering-performance-to-prevent-ui-freezing-when-loading-and-displaying-large-datasets-hundreds-of-states-districts-etc-on-android-devices",
+      "featureTitle": "Optimize dropdown rendering performance to prevent UI freezing when loading and displaying large datasets (hundreds of states, districts, etc.) on Android devices.",
+      "files": [
+        "frontend/src/components/HierarchicalLocationSelector.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
       ],
       "confidence": "high"
     }

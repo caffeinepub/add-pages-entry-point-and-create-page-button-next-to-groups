@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import HierarchicalLocationSelector from './HierarchicalLocationSelector';
 
 interface EditProfileModalProps {
   open: boolean;
@@ -46,7 +47,7 @@ export default function EditProfileModal({ open, onOpenChange }: EditProfileModa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-white">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-white">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-[oklch(0.15_0_0)]">Edit Profile</DialogTitle>
         </DialogHeader>
@@ -78,15 +79,10 @@ export default function EditProfileModal({ open, onOpenChange }: EditProfileModa
             />
           </div>
           <div>
-            <Label htmlFor="edit-location" className="text-sm font-semibold text-[oklch(0.15_0_0)] mb-2 block">
-              Location
-            </Label>
-            <Input
-              id="edit-location"
+            <HierarchicalLocationSelector
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="City, Country"
-              className="bg-white border-[oklch(0.70_0.02_250)] text-[oklch(0.15_0_0)] placeholder:text-[oklch(0.50_0.03_250)] focus:border-[oklch(0.45_0.12_250)] focus:ring-2 focus:ring-[oklch(0.45_0.12_250/0.2)]"
+              onChange={setLocation}
+              initialLocation={currentProfile?.location}
             />
           </div>
           <div className="flex gap-2">

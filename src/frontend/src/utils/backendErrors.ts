@@ -39,6 +39,11 @@ export function formatBackendError(error: unknown): string {
     if (message.includes('Content must include')) {
       return 'Please add text, an image, or a video to your post';
     }
+
+    // Handle location-related errors
+    if (message.includes('location') || message.includes('Location')) {
+      return message;
+    }
     
     // Return the original message if it's already user-friendly
     if (message.length > 0 && message.length < 200) {

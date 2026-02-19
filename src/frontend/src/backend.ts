@@ -149,7 +149,10 @@ export interface backendInterface {
     getAllPosts(): Promise<Array<Post>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getCountries(): Promise<Array<string>>;
+    getDistrictsByState(state: string): Promise<Array<string>>;
     getNewsFeedPosts(): Promise<Array<Post>>;
+    getStatesByCountry(_country: string): Promise<Array<string>>;
     getUserPosts(user: Principal): Promise<Array<Post>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
@@ -354,6 +357,34 @@ export class Backend implements backendInterface {
             return from_candid_UserRole_n27(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getCountries(): Promise<Array<string>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCountries();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCountries();
+            return result;
+        }
+    }
+    async getDistrictsByState(arg0: string): Promise<Array<string>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getDistrictsByState(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getDistrictsByState(arg0);
+            return result;
+        }
+    }
     async getNewsFeedPosts(): Promise<Array<Post>> {
         if (this.processError) {
             try {
@@ -366,6 +397,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getNewsFeedPosts();
             return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getStatesByCountry(arg0: string): Promise<Array<string>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getStatesByCountry(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getStatesByCountry(arg0);
+            return result;
         }
     }
     async getUserPosts(arg0: Principal): Promise<Array<Post>> {

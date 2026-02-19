@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import HierarchicalLocationSelector from './HierarchicalLocationSelector';
 
 export default function ProfileSetupModal() {
   const [name, setName] = useState('');
@@ -30,7 +31,7 @@ export default function ProfileSetupModal() {
   return (
     <Dialog open={true} modal={true}>
       <DialogContent 
-        className="profile-setup-modal sm:max-w-md" 
+        className="profile-setup-modal sm:max-w-md max-h-[90vh] overflow-y-auto" 
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
@@ -69,15 +70,9 @@ export default function ProfileSetupModal() {
             />
           </div>
           <div>
-            <Label htmlFor="location" className="text-sm font-semibold text-[oklch(0.15_0_0)] mb-2 block">
-              Location
-            </Label>
-            <Input
-              id="location"
+            <HierarchicalLocationSelector
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="City, Country"
-              className="mt-1.5 bg-white border-[oklch(0.70_0.02_250)] text-[oklch(0.15_0_0)] placeholder:text-[oklch(0.50_0.03_250)] focus:border-[oklch(0.45_0.12_250)] focus:ring-2 focus:ring-[oklch(0.45_0.12_250/0.2)]"
+              onChange={setLocation}
             />
           </div>
           <Button

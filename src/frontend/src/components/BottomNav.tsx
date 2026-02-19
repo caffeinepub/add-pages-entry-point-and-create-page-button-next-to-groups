@@ -1,5 +1,5 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router';
-import { Home, Video, User, Calendar, Film } from 'lucide-react';
+import { Home, Video, Calendar, Film, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function BottomNav() {
@@ -7,14 +7,13 @@ export default function BottomNav() {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
 
+  const isGroupsOrPagesActive = currentPath.startsWith('/groups') || currentPath.startsWith('/pages') || currentPath === '/groups-and-pages';
+
   const navItems = [
     { path: '/', icon: Home, label: 'Home', type: 'lucide' as const },
     { path: '/video', icon: Video, label: 'Video', type: 'lucide' as const },
     { path: '/reel', icon: Film, label: 'Reel', type: 'lucide' as const },
     { path: '/events', icon: Calendar, label: 'Events', type: 'lucide' as const },
-    { path: '/groups', iconSrc: '/assets/generated/groups-icon.dim_32x32.png', label: 'Groups', type: 'image' as const },
-    { path: '/pages', iconSrc: '/assets/generated/pages-icon.dim_32x32.png', label: 'Pages', type: 'image' as const },
-    { path: '/profile', icon: User, label: 'Profile', type: 'lucide' as const },
   ];
 
   return (
@@ -23,9 +22,7 @@ export default function BottomNav() {
         <div className="flex items-center justify-around py-2">
           {navItems.map((item) => {
             const isActive = currentPath === item.path || 
-              (item.path === '/events' && currentPath.startsWith('/events')) ||
-              (item.path === '/groups' && currentPath.startsWith('/groups')) ||
-              (item.path === '/pages' && currentPath.startsWith('/pages'));
+              (item.path === '/events' && currentPath.startsWith('/events'));
             
             return (
               <Button
@@ -38,22 +35,29 @@ export default function BottomNav() {
                 }`}
                 onClick={() => navigate({ to: item.path })}
               >
-                {item.type === 'lucide' && item.icon ? (
-                  <item.icon className={`h-6 w-6 ${isActive ? 'fill-current' : ''}`} />
-                ) : (
-                  <img 
-                    src={item.iconSrc} 
-                    alt={`${item.label} icon`}
-                    className={`h-6 w-6 ${isActive ? 'opacity-100' : 'opacity-60'}`}
-                    style={isActive ? { filter: 'brightness(0) saturate(100%) invert(28%) sepia(73%) saturate(1234%) hue-rotate(210deg) brightness(95%) contrast(92%)' } : {}}
-                  />
-                )}
+                <item.icon className={`h-6 w-6 ${isActive ? 'fill-current' : ''}`} />
                 <span className={`text-xs font-medium ${isActive ? 'font-semibold' : ''}`}>
                   {item.label}
                 </span>
               </Button>
             );
           })}
+
+          {/* Wallet tab */}
+          <Button
+            variant="ghost"
+            className={`flex flex-col items-center gap-1 h-auto py-2 px-2 hover:bg-transparent ${
+              currentPath === '/wallet'
+                ? 'text-[oklch(0.45_0.12_250)]'
+                : 'text-muted-foreground hover:text-[oklch(0.45_0.12_250)]'
+            }`}
+            onClick={() => navigate({ to: '/wallet' })}
+          >
+            <Wallet className={`h-6 w-6 ${currentPath === '/wallet' ? 'fill-current' : ''}`} />
+            <span className={`text-xs font-medium ${currentPath === '/wallet' ? 'font-semibold' : ''}`}>
+              Wallet
+            </span>
+          </Button>
         </div>
       </div>
     </nav>

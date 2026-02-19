@@ -1,85 +1,140 @@
 {
   "kind": "build_request",
-  "title": "Update navigation: move Logout into Settings, add Profile in header, and add Reels after Video",
+  "title": "Implement scrollable, searchable location dropdowns with cascading behavior",
+  "projectName": "CivWorld",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "In the top header (frontend/src/components/Header.tsx), replace the authenticated-state primary button text/action from \"Logout\" to \"Profile\" so that when the user is authenticated it navigates to \"/profile\" instead of logging out. When the user is not authenticated, the button must remain \"Login\" and must continue to trigger the Internet Identity login flow.",
+      "text": "Make the State dropdown fully scrollable with smooth vertical scrolling when the list exceeds screen height. Apply max-height of 60-70% of screen height to the dropdown list container.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-20"
         ],
         "quotes": [
-          "In settings button we have logout option so keep logout option in settings and replace logout with profile at top add reel button after videos"
+          "Make the State dropdown fully scrollable when the list exceeds screen height. Use a smooth vertical scroll inside the dropdown/modal.",
+          "Add proper max height (for example 60–70% of screen height) to the dropdown list."
         ]
       },
       "acceptanceCriteria": [
-        "When logged out, the header button label is \"Login\" and it triggers login.",
-        "When logged in, the header button label is \"Profile\" and it navigates to /profile.",
-        "Clicking the header button while logged in does not log the user out."
+        "State dropdown scrolls smoothly when state list exceeds available space",
+        "Dropdown list has max-height set to 60-70% of viewport height",
+        "All states remain selectable without UI overlap"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Keep the Logout action available under the Settings (gear) menu in the header (frontend/src/components/Header.tsx) and ensure it still logs the user out (clears identity and clears React Query cache) when clicked.",
+      "text": "Add search/filter functionality inside the State dropdown for better UX. Users should be able to type to filter the list of states in real-time.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-20"
         ],
         "quotes": [
-          "In settings button we have logout option so keep logout option in settings"
+          "Enable search/filter inside the State dropdown for better UX."
         ]
       },
       "acceptanceCriteria": [
-        "When logged in, the Settings dropdown contains a menu item labeled \"Logout\".",
-        "Clicking \"Logout\" in Settings logs the user out and clears client-side cached data as it did previously.",
-        "There is no other Logout control shown in the header outside of Settings."
+        "Search input field appears at the top of the State dropdown",
+        "Typing filters the state list in real-time",
+        "Filtered results maintain scrollability"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add a new primary navigation item labeled \"Reel\" positioned immediately after \"Video\" in the bottom navigation (frontend/src/components/BottomNav.tsx). Create a new route at \"/reel\" in the router (frontend/src/App.tsx) and implement a placeholder Reel page (new file under frontend/src/pages) with English user-facing text indicating the Reel feed is coming soon, similar in structure to the existing Video placeholder page.",
-      "target": "frontend",
+      "text": "Ensure cascading location selection behavior works correctly: When Country = India, load all Indian states; when State is selected, load districts under that state; when District is selected, load MP constituencies; when MP is selected, load MLA constituencies; then Mandal, then Village.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-20"
         ],
         "quotes": [
-          "add reel button after videos"
+          "Ensure the same cascading behavior: When Country = India → load all Indian states, When State selected → load districts under that state, When District selected → load MP constituencies, When MP selected → load MLA constituencies, Then Mandal → Village"
         ]
       },
       "acceptanceCriteria": [
-        "Bottom navigation shows items in an order where \"Reel\" appears directly after \"Video\".",
-        "Tapping/clicking \"Reel\" navigates to /reel without errors.",
-        "/reel renders a placeholder page with English text indicating the feature is coming soon.",
-        "The Reel nav item shows an active state when the current path is /reel."
+        "Selecting India as country loads Indian states",
+        "Selecting a state loads districts for that state",
+        "Selecting a district loads MP constituencies for that district",
+        "Selecting an MP constituency loads MLA constituencies",
+        "Selecting MLA constituency loads Mandals",
+        "Selecting Mandal loads Villages",
+        "Each level clears and resets subsequent dependent levels"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Apply the same scroll behavior (smooth vertical scroll, max-height 60-70% of screen, search/filter functionality) to all location dropdowns: State, District, MP, MLA, Mandal, and Village.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-20"
+        ],
+        "quotes": [
+          "Apply the same scroll behavior to all location dropdowns (State, District, MP, MLA, Mandal, Village)."
+        ]
+      },
+      "acceptanceCriteria": [
+        "All location dropdowns (State, District, MP, MLA, Mandal, Village) have smooth scrolling",
+        "All location dropdowns have max-height of 60-70% viewport",
+        "All location dropdowns include search/filter functionality",
+        "Consistent UX across all dropdown levels"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Ensure mobile-responsive and touch-friendly scrolling for all location dropdowns. Fix any z-index or overflow CSS issues that prevent clicks or selections.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-20"
+        ],
+        "quotes": [
+          "Mobile responsive and touch-friendly scrolling required.",
+          "Fix any z-index or overflow issues preventing clicks."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Dropdowns scroll smoothly on touch devices",
+        "No z-index conflicts preventing user interaction",
+        "All dropdown items are clickable and selectable",
+        "Overflow styles do not clip interactive elements"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Optimize dropdown rendering performance to prevent UI freezing when loading and displaying large datasets (hundreds of states, districts, etc.) on Android devices.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-20"
+        ],
+        "quotes": [
+          "Smooth performance on Android",
+          "No UI freezing with large datasets"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Dropdown renders large lists without freezing",
+        "Scrolling remains smooth with datasets of 100+ items",
+        "Search/filter operations are performant on Android"
       ]
     }
   ],
   "constraints": [
-    "Do not edit any files under frontend/src/components/ui or any other paths listed as immutable in SYSTEM_CONTEXT.",
-    "Backend must remain single-actor; no backend changes are required for this request."
+    "Must work within React frontend stack (no Flutter; user mentioned Flutter but the existing codebase is React-based)",
+    "Use HierarchicalLocationSelector.tsx as the base component for modifications",
+    "Must not break existing location selection logic in profile setup and other forms",
+    "Backend location data loading logic must remain unchanged unless cascading behavior is broken"
   ],
   "nonGoals": [
-    "Implementing an actual reels/video feed experience (uploading, playback, infinite scrolling, recommendations).",
-    "Changing authentication providers or adding third-party auth beyond Internet Identity.",
-    "Any new backend data models or persistence for reels."
+    "Migrating the frontend to Flutter",
+    "Adding new location hierarchy levels beyond the existing six (Country, State, District, MP, MLA, Mandal, Village)",
+    "Changing the backend API structure for location data"
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

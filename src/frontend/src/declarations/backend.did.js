@@ -90,7 +90,10 @@ export const idlService = IDL.Service({
   'getAllPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getCountries' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+  'getDistrictsByState' : IDL.Func([IDL.Text], [IDL.Vec(IDL.Text)], ['query']),
   'getNewsFeedPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
+  'getStatesByCountry' : IDL.Func([IDL.Text], [IDL.Vec(IDL.Text)], ['query']),
   'getUserPosts' : IDL.Func([IDL.Principal], [IDL.Vec(Post)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
@@ -183,7 +186,14 @@ export const idlFactory = ({ IDL }) => {
     'getAllPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getCountries' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
+    'getDistrictsByState' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(IDL.Text)],
+        ['query'],
+      ),
     'getNewsFeedPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
+    'getStatesByCountry' : IDL.Func([IDL.Text], [IDL.Vec(IDL.Text)], ['query']),
     'getUserPosts' : IDL.Func([IDL.Principal], [IDL.Vec(Post)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],

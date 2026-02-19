@@ -56,7 +56,10 @@ export interface backendInterface {
     getAllPosts(): Promise<Array<Post>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getCountries(): Promise<Array<string>>;
+    getDistrictsByState(state: string): Promise<Array<string>>;
     getNewsFeedPosts(): Promise<Array<Post>>;
+    getStatesByCountry(_country: string): Promise<Array<string>>;
     getUserPosts(user: Principal): Promise<Array<Post>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;

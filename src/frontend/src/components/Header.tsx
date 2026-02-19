@@ -3,12 +3,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useGetUserNotifications, useMarkNotificationsAsRead } from '../hooks/useQueries';
 import { Button } from '@/components/ui/button';
-import { Settings, MessageSquare, Bell, Search } from 'lucide-react';
+import { Settings, MessageSquare, Bell, Search, Wallet } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
+import BuildInfoIndicator from './BuildInfoIndicator';
 
 interface HeaderProps {
   onNavigateToMessages?: () => void;
@@ -71,6 +73,16 @@ export default function Header({ onNavigateToMessages, showMessagesButton = fals
         <div className="flex items-center gap-3">
           {isAuthenticated && (
             <>
+              <Button
+                onClick={() => navigate({ to: '/wallet' })}
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/10"
+                title="Wallet"
+              >
+                <Wallet className="h-6 w-6" />
+              </Button>
+
               <Button
                 onClick={() => navigate({ to: '/explore' })}
                 variant="ghost"
@@ -165,6 +177,8 @@ export default function Header({ onNavigateToMessages, showMessagesButton = fals
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <BuildInfoIndicator />
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   Logout
                 </DropdownMenuItem>

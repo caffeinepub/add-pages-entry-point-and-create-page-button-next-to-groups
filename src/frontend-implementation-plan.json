@@ -1,64 +1,117 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Navigation updates: Profile header button, Logout in Settings, add Reel route",
+  "title": "Implement scrollable, searchable location dropdowns with cascading behavior",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Change the authenticated header primary action from Logout to Profile navigation while keeping Login behavior when unauthenticated.",
+      "summary": "Make the State dropdown fully scrollable with max-height of 60-70% of screen height",
       "acceptanceCriteria": [
-        "When logged out, the header button label is \"Login\" and it triggers login.",
-        "When logged in, the header button label is \"Profile\" and it navigates to /profile.",
-        "Clicking the header button while logged in does not log the user out."
+        "State dropdown scrolls smoothly when state list exceeds available space",
+        "Dropdown list has max-height set to 60-70% of viewport height",
+        "All states remain selectable without UI overlap"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/Header.tsx",
+          "path": "frontend/src/components/HierarchicalLocationSelector.tsx",
           "operation": "modify",
-          "description": "Update the primary header button so unauthenticated state remains \"Login\" and triggers the Internet Identity login flow, while authenticated state shows \"Profile\" and navigates to \"/profile\" (no logout). Use the existing Internet Identity + logout patterns from the authorization component integration; Verify the component's usage instructions before implementing."
+          "description": "Add scrollable container with max-height constraint to State dropdown. Apply CSS styles to enable smooth vertical scrolling when content exceeds 60-70vh. Ensure dropdown list container has overflow-y: auto and proper bounds to prevent UI overlap."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Ensure Logout remains only in the Settings dropdown and still clears identity and React Query cache.",
+      "summary": "Add search/filter functionality inside the State dropdown",
       "acceptanceCriteria": [
-        "When logged in, the Settings dropdown contains a menu item labeled \"Logout\".",
-        "Clicking \"Logout\" in Settings logs the user out and clears client-side cached data as it did previously.",
-        "There is no other Logout control shown in the header outside of Settings."
+        "Search input field appears at the top of the State dropdown",
+        "Typing filters the state list in real-time",
+        "Filtered results maintain scrollability"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/Header.tsx",
+          "path": "frontend/src/components/HierarchicalLocationSelector.tsx",
           "operation": "modify",
-          "description": "Keep a Settings (gear) dropdown item labeled \"Logout\" that executes the existing logout behavior (clear Internet Identity + clear React Query cache). Ensure the header primary button is no longer a Logout control. Use the existing logout/cache-clearing approach aligned with the authorization component guidance; Verify the component's usage instructions before implementing."
+          "description": "Add search input field at the top of the State dropdown. Implement real-time filtering logic using React state to filter displayed states based on user input. Ensure filtered results remain scrollable and maintain the max-height constraint from REQ-1."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Add a Reel item after Video in bottom navigation and create a /reel route with a placeholder Reel page.",
+      "summary": "Ensure cascading location selection behavior works correctly across all hierarchy levels",
       "acceptanceCriteria": [
-        "Bottom navigation shows items in an order where \"Reel\" appears directly after \"Video\".",
-        "Tapping/clicking \"Reel\" navigates to /reel without errors.",
-        "/reel renders a placeholder page with English text indicating the feature is coming soon.",
-        "The Reel nav item shows an active state when the current path is /reel."
+        "Selecting India as country loads Indian states",
+        "Selecting a state loads districts for that state",
+        "Selecting a district loads MP constituencies for that district",
+        "Selecting an MP constituency loads MLA constituencies",
+        "Selecting MLA constituency loads Mandals",
+        "Selecting Mandal loads Villages",
+        "Each level clears and resets subsequent dependent levels"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/BottomNav.tsx",
+          "path": "frontend/src/components/HierarchicalLocationSelector.tsx",
           "operation": "modify",
-          "description": "Insert a new primary nav item labeled \"Reel\" immediately after the existing \"Video\" item and ensure route-aware active styling works when the current path is \"/reel\"."
+          "description": "Verify and fix cascading behavior logic. Ensure that when Country = India is selected, all Indian states load. When a State is selected, fetch and display districts for that state. Continue cascade through District → MP Constituency → MLA Constituency → Mandal → Village. Implement proper state clearing for dependent dropdowns when a parent level changes. Use useLocationQueries hooks to fetch hierarchical data at each level."
         },
         {
-          "path": "frontend/src/pages/ReelPage.tsx",
-          "operation": "create",
-          "description": "Create a Reel placeholder page under frontend/src/pages with English user-facing text indicating the Reel feed is coming soon, matching the overall structure/visual pattern of the existing Video placeholder page."
+          "path": "frontend/src/hooks/useLocationQueries.ts",
+          "operation": "modify",
+          "description": "Review and ensure all location query hooks (useGetDistrictsByState, useGetMPByDistrict, useGetMLAByMP, useGetMandalByMLA, useGetVillageByMandal) properly fetch data based on parent selection. Add placeholder implementations for any missing backend methods with clear TODOs. Verify caching and enabled conditions are correct for cascading behavior."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Apply scroll behavior and search functionality to all location dropdowns",
+      "acceptanceCriteria": [
+        "All location dropdowns (State, District, MP, MLA, Mandal, Village) have smooth scrolling",
+        "All location dropdowns have max-height of 60-70% viewport",
+        "All location dropdowns include search/filter functionality",
+        "Consistent UX across all dropdown levels"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/HierarchicalLocationSelector.tsx",
+          "operation": "modify",
+          "description": "Extend the scrollable container and search functionality implemented in REQ-1 and REQ-2 to all remaining location dropdowns: District, MP, MLA, Mandal, and Village. Create a reusable dropdown component or styling pattern that applies max-height (60-70vh), smooth scrolling (overflow-y: auto), and search input to each level. Ensure consistent styling and behavior across all six dropdown levels."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Ensure mobile-responsive and touch-friendly scrolling for all location dropdowns",
+      "acceptanceCriteria": [
+        "Dropdowns scroll smoothly on touch devices",
+        "No z-index conflicts preventing user interaction",
+        "All dropdown items are clickable and selectable",
+        "Overflow styles do not clip interactive elements"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/HierarchicalLocationSelector.tsx",
+          "operation": "modify",
+          "description": "Add mobile-responsive CSS properties for touch-friendly scrolling (webkit-overflow-scrolling: touch, touch-action: pan-y). Review and fix z-index layering to ensure dropdowns appear above other content without blocking interaction. Verify that overflow styles do not clip clickable elements. Test tap targets meet minimum size requirements for mobile devices."
         },
         {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/index.css",
           "operation": "modify",
-          "description": "Register a new route at path \"/reel\" that renders the new Reel page, and wire the page import into the existing router configuration."
+          "description": "Add global CSS utilities or classes for scrollable dropdowns if needed, ensuring touch-friendly behavior and proper z-index stacking context. Define reusable scrollbar styling for consistency across all dropdowns."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Optimize dropdown rendering performance to prevent UI freezing with large datasets",
+      "acceptanceCriteria": [
+        "Dropdown renders large lists without freezing",
+        "Scrolling remains smooth with datasets of 100+ items",
+        "Search/filter operations are performant on Android"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/HierarchicalLocationSelector.tsx",
+          "operation": "modify",
+          "description": "Implement performance optimizations for rendering large location lists. Consider using React.memo for dropdown items to prevent unnecessary re-renders. Optimize search filtering with debouncing or useMemo to avoid re-filtering on every keystroke. If dataset sizes exceed 200+ items, consider implementing virtualization (react-window or react-virtual) for dropdown lists. Test on Android devices to ensure smooth scrolling and filtering performance."
         }
       ]
     }

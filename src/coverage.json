@@ -1,64 +1,95 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-08T03:05:13.441Z",
+  "generatedAt": "2026-02-19T08:11:03.050Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 3,
+    "total": 6,
+    "implemented": 6,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "In the top header (frontend/src/components/Header.tsx), replace the authenticated-state primary button text/action from \"Logout\" to \"Profile\" so that when the user is authenticated it navigates to \"/profile\" instead of logging out. When the user is not authenticated, the button must remain \"Login\" and must continue to trigger the Internet Identity login flow.",
+        "summary": "Make the State dropdown fully scrollable with smooth vertical scrolling when the list exceeds screen height. Apply max-height of 60-70% of screen height to the dropdown list container.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/Header.tsx"
+          "frontend/src/components/HierarchicalLocationSelector.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/Header.tsx"
+          "frontend/src/components/HierarchicalLocationSelector.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Keep the Logout action available under the Settings (gear) menu in the header (frontend/src/components/Header.tsx) and ensure it still logs the user out (clears identity and clears React Query cache) when clicked.",
+        "summary": "Add search/filter functionality inside the State dropdown for better UX. Users should be able to type to filter the list of states in real-time.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/Header.tsx"
+          "frontend/src/components/HierarchicalLocationSelector.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/Header.tsx"
+          "frontend/src/components/HierarchicalLocationSelector.tsx"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Add a new primary navigation item labeled \"Reel\" positioned immediately after \"Video\" in the bottom navigation (frontend/src/components/BottomNav.tsx). Create a new route at \"/reel\" in the router (frontend/src/App.tsx) and implement a placeholder Reel page (new file under frontend/src/pages) with English user-facing text indicating the Reel feed is coming soon, similar in structure to the existing Video placeholder page.",
+        "summary": "Ensure cascading location selection behavior works correctly: When Country = India, load all Indian states; when State is selected, load districts under that state; when District is selected, load MP constituencies; when MP is selected, load MLA constituencies; then Mandal, then Village.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/BottomNav.tsx",
-          "frontend/src/pages/ReelPage.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/components/HierarchicalLocationSelector.tsx",
+          "frontend/src/hooks/useLocationQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/components/BottomNav.tsx",
-          "frontend/src/pages/ReelPage.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/components/HierarchicalLocationSelector.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Apply the same scroll behavior (smooth vertical scroll, max-height 60-70% of screen, search/filter functionality) to all location dropdowns: State, District, MP, MLA, Mandal, and Village.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/HierarchicalLocationSelector.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/HierarchicalLocationSelector.tsx"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Ensure mobile-responsive and touch-friendly scrolling for all location dropdowns. Fix any z-index or overflow CSS issues that prevent clicks or selections.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/HierarchicalLocationSelector.tsx",
+          "frontend/index.css"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/HierarchicalLocationSelector.tsx"
+        ]
+      },
+      {
+        "id": "REQ-6",
+        "summary": "Optimize dropdown rendering performance to prevent UI freezing when loading and displaying large datasets (hundreds of states, districts, etc.) on Android devices.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/HierarchicalLocationSelector.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/HierarchicalLocationSelector.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/components/BottomNav.tsx",
-    "frontend/src/components/Header.tsx",
-    "frontend/src/pages/ReelPage.tsx",
+    "frontend/src/components/HierarchicalLocationSelector.tsx",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/index.css",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

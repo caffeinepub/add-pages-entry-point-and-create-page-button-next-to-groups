@@ -3,40 +3,27 @@ import { useNavigate } from '@tanstack/react-router';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useGetAllGroups, useGetUserGroups } from '../hooks/useQueries';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Plus, FileText } from 'lucide-react';
-import CreateGroupModal from '../components/CreateGroupModal';
+import { Users } from 'lucide-react';
 
 export default function GroupsPage() {
   const navigate = useNavigate();
   const { identity } = useInternetIdentity();
   const { data: allGroups, isLoading: allGroupsLoading } = useGetAllGroups();
   const { data: userGroups, isLoading: userGroupsLoading } = useGetUserGroups(identity?.getPrincipal() || null);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   return (
     <div className="min-h-full bg-background">
       <div className="container max-w-2xl mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
           <h2 className="text-2xl font-bold text-foreground">Groups</h2>
-          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-            <Button
-              onClick={() => setCreateModalOpen(true)}
-              className="bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)] gap-2 flex-1 sm:flex-none"
-            >
-              <Plus className="h-4 w-4" />
-              Create Group
-            </Button>
-            <Button
-              onClick={() => navigate({ to: '/pages/create' })}
-              variant="outline"
-              className="gap-2 flex-1 sm:flex-none border-[oklch(0.45_0.12_250)] text-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.45_0.12_250)] hover:text-white"
-            >
-              <FileText className="h-4 w-4" />
-              Create Page
-            </Button>
-          </div>
+          <Button
+            onClick={() => navigate({ to: '/pages/create' })}
+            className="bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)]"
+          >
+            Create Page
+          </Button>
         </div>
 
         <Tabs defaultValue="all" className="w-full">
@@ -80,8 +67,6 @@ export default function GroupsPage() {
           </TabsContent>
         </Tabs>
       </div>
-
-      <CreateGroupModal open={createModalOpen} onOpenChange={setCreateModalOpen} />
     </div>
   );
 }
