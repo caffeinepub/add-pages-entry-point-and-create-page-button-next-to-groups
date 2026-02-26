@@ -1,0 +1,99 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "CivWorld social platform application with features including posts, likes, polls, pages/groups, Communities tab, and comment system. Focus on fixing and enhancing core social features.",
+  "architectural_notes": [
+    "CivWorld is a social platform (Facebook-like) with posts, likes, polls, pages, groups, and Communities tab",
+    "Comment system requires nested replies, likes, edit/delete/report with permission checks, and real-time display without page refresh"
+  ],
+  "known_issues": [
+    "Comment section is broken — comments cannot be saved or displayed",
+    "Poll results not visible after voting",
+    "Multiple builds failing due to request size — breaking into smaller chunks required"
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-add-react-query-hooks-in-frontend-src-hooks-usequeries-ts-for-the-comment-system-usegetcommentsbypost-postid-fetches-comments-for-a-post-usemutationaddcomment-calls-addcomment-usemutationeditcomment-calls-editcomment-usemutationdeletecomment-calls-deletecomment-usemutationlikecomment-calls-likecomment-all-mutation-hooks-must-invalidate-the-usegetcommentsbypost-query-on-success-so-comments-refresh-instantly-without-a-page-reload",
+      "title": "Add React Query hooks in frontend/src/hooks/useQueries.ts for the comment system: useGetCommentsByPost(postId) fetches comments for a post; useMutationAddComment() calls addComment; useMutationEditComment() calls editComment; useMutationDeleteComment() calls deleteComment; useMutationLikeComment() calls likeComment. All mutation hooks must invalidate the useGetCommentsByPost query on success so comments refresh instantly without a page reload.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-new-frontend-component-frontend-src-components-commentsection-tsx-that-renders-the-full-comment-ui-for-a-given-postid-the-component-must-display-a-list-of-comments-showing-the-author-s-profile-image-or-a-default-avatar-username-relative-timestamp-e-g-2m-ago-and-comment-text-support-nested-replies-rendered-indented-under-their-parent-comment-show-an-input-field-to-add-a-new-top-level-comment-with-a-loading-spinner-while-posting-show-success-and-error-toast-messages-after-submission-attempts-display-a-three-dot-context-menu-on-each-comment-with-edit-and-delete-options-visible-only-to-the-comment-s-author-and-a-report-option-visible-to-other-authenticated-users-support-an-inline-reply-input-triggered-per-comment-support-inline-edit-mode-replacing-comment-text-with-an-editable-input-show-like-button-with-count-on-each-comment-use-the-react-query-hooks-from-req-3-for-all-data-operations",
+      "title": "Create a new frontend component frontend/src/components/CommentSection.tsx that renders the full comment UI for a given postId. The component must: display a list of comments showing the author's profile image (or a default avatar), username, relative timestamp (e.g., '2m ago'), and comment text; support nested replies rendered indented under their parent comment; show an input field to add a new top-level comment with a loading spinner while posting; show success and error toast messages after submission attempts; display a three-dot (⋮) context menu on each comment with 'Edit' and 'Delete' options visible only to the comment's author, and a 'Report' option visible to other authenticated users; support an inline reply input triggered per-comment; support inline edit mode replacing comment text with an editable input; show like button with count on each comment; use the React Query hooks from REQ-3 for all data operations.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-integrate-the-commentsection-component-into-the-postcard-component-frontend-src-components-postcard-tsx-add-a-collapsible-comment-section-below-each-post-that-is-shown-hidden-when-the-user-clicks-a-comment-button-or-icon-pass-the-post-s-id-as-the-postid-prop-to-commentsection",
+      "title": "Integrate the CommentSection component into the PostCard component (frontend/src/components/PostCard.tsx). Add a collapsible comment section below each post that is shown/hidden when the user clicks a 'Comment' button or icon. Pass the post's id as the postId prop to CommentSection.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Fix comment section: add/reply/like/delete/edit comments with backend persistence, dynamic fetch, instant display, loading states, and permission-based options",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Fix poll results visibility: show vote percentages, total votes, progress bars, highlight selected option, disable re-voting, prevent duplicate votes",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Add three-dot menu (edit/delete/report) for posts and comments with report popup (reasons: Spam, Fake News, Abusive Content, Political Misinformation, Other) saved to admin panel",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Add structured location/political data fields (District, MP Constituency, MLA Constituency, Mandal, Village) with dependent dropdowns on posts, pages, groups, and user profiles",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Admin panel: view/delete reported posts/comments, suspend users",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "UI improvements: ensure all buttons clickable, fix routing errors, add loading states and toast/snackbar messages",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Define a Comment data type in the backend with fields: id (Nat), postId (Text), authorId (Principal), content (Text), createdAt (Int), updatedAt (opt Int), parentCommentId (opt Nat), likes (array of Principal), isDeleted (Bool). Store comments in a stable var array or HashMap keyed by comment id.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Implement the following backend query and update functions for comments: addComment(postId: Text, content: Text, parentCommentId: ?Nat) returns new comment id; getCommentsByPost(postId: Text) returns array of all non-deleted comments for that post; editComment(commentId: Nat, newContent: Text) allows only the comment author to update content; deleteComment(commentId: Nat) marks the comment as deleted (soft delete) only if caller is the author; likeComment(commentId: Nat) toggles the caller's Principal in the comment's likes array; getCommentLikeCount(commentId: Nat) returns the like count.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "CivWorld",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

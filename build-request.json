@@ -1,0 +1,143 @@
+{
+  "kind": "build_request",
+  "title": "Fix Comment Section — Add/Reply/Like/Edit/Delete with Backend Persistence",
+  "projectName": "CivWorld",
+  "priority": "high",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Define a Comment data type in the backend with fields: id (Nat), postId (Text), authorId (Principal), content (Text), createdAt (Int), updatedAt (opt Int), parentCommentId (opt Nat), likes (array of Principal), isDeleted (Bool). Store comments in a stable var array or HashMap keyed by comment id.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "Save comments properly in backend/database.",
+          "Reply to comments (nested replies)",
+          "Like comments",
+          "Delete their own comments",
+          "Edit their own comments"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Comment type is defined with all required fields including parentCommentId for nesting and likes array.",
+        "Comments persist across canister upgrades via stable storage."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Implement the following backend query and update functions for comments: addComment(postId: Text, content: Text, parentCommentId: ?Nat) returns new comment id; getCommentsByPost(postId: Text) returns array of all non-deleted comments for that post; editComment(commentId: Nat, newContent: Text) allows only the comment author to update content; deleteComment(commentId: Nat) marks the comment as deleted (soft delete) only if caller is the author; likeComment(commentId: Nat) toggles the caller's Principal in the comment's likes array; getCommentLikeCount(commentId: Nat) returns the like count.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "Add comments",
+          "Reply to comments (nested replies)",
+          "Like comments",
+          "Delete their own comments",
+          "Edit their own comments",
+          "Fetch comments dynamically per post"
+        ]
+      },
+      "acceptanceCriteria": [
+        "addComment correctly associates a comment with the given postId and sets parentCommentId when replying.",
+        "getCommentsByPost returns only non-deleted comments for the specified postId.",
+        "editComment rejects calls from non-authors with an error.",
+        "deleteComment soft-deletes the comment (isDeleted = true) and rejects non-author callers.",
+        "likeComment toggles the like — adds if not present, removes if already liked.",
+        "All functions require an authenticated caller (not anonymous principal)."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Add React Query hooks in frontend/src/hooks/useQueries.ts for the comment system: useGetCommentsByPost(postId) fetches comments for a post; useMutationAddComment() calls addComment; useMutationEditComment() calls editComment; useMutationDeleteComment() calls deleteComment; useMutationLikeComment() calls likeComment. All mutation hooks must invalidate the useGetCommentsByPost query on success so comments refresh instantly without a page reload.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "Fetch comments dynamically per post.",
+          "Show comments instantly after submission (no page refresh)."
+        ]
+      },
+      "acceptanceCriteria": [
+        "useGetCommentsByPost fetches and returns the comments array for a given postId.",
+        "All mutation hooks invalidate the comments query on success, causing an immediate re-fetch.",
+        "Hooks are exported and available for use in comment UI components."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Create a new frontend component frontend/src/components/CommentSection.tsx that renders the full comment UI for a given postId. The component must: display a list of comments showing the author's profile image (or a default avatar), username, relative timestamp (e.g., '2m ago'), and comment text; support nested replies rendered indented under their parent comment; show an input field to add a new top-level comment with a loading spinner while posting; show success and error toast messages after submission attempts; display a three-dot (⋮) context menu on each comment with 'Edit' and 'Delete' options visible only to the comment's author, and a 'Report' option visible to other authenticated users; support an inline reply input triggered per-comment; support inline edit mode replacing comment text with an editable input; show like button with count on each comment; use the React Query hooks from REQ-3 for all data operations.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "Show comments instantly after submission (no page refresh).",
+          "Add loading indicator while posting.",
+          "Show proper success/error messages.",
+          "Comments should display: User profile image, Username, Time (e.g., 2m ago), Edit / Delete / Report options (based on permissions)",
+          "Reply to comments (nested replies)",
+          "Like comments",
+          "Delete their own comments",
+          "Edit their own comments"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Comments for a post load and display on mount without a page refresh.",
+        "Submitting a new comment shows a loading indicator and the comment appears in the list immediately after success.",
+        "Replies are indented under their parent comment.",
+        "A toast or inline message is shown on both success and error for add/edit/delete/like actions.",
+        "The three-dot menu shows Edit and Delete only when the logged-in user is the comment author.",
+        "The three-dot menu shows Report to users who are not the author.",
+        "Clicking Edit replaces the comment text with an editable input field.",
+        "Clicking Delete removes the comment from the list after confirmation.",
+        "Like button toggles correctly and displays the current like count.",
+        "Each comment shows the author's avatar (profile photo or default), username, and relative time."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Integrate the CommentSection component into the PostCard component (frontend/src/components/PostCard.tsx). Add a collapsible comment section below each post that is shown/hidden when the user clicks a 'Comment' button or icon. Pass the post's id as the postId prop to CommentSection.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "Comment section is not working.",
+          "Fetch comments dynamically per post."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Each PostCard displays a comment toggle button.",
+        "Clicking the toggle reveals the CommentSection for that specific post.",
+        "CommentSection is not rendered (or is hidden) by default to avoid unnecessary backend calls.",
+        "The correct postId is passed to CommentSection so comments are scoped to the post."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not modify any files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "Do not break existing post, like, poll, group, or page functionality.",
+    "Only the comment author may edit or delete their own comment — enforce this on both frontend (hide options) and backend (reject unauthorized calls).",
+    "Use soft delete (isDeleted flag) for comments rather than hard deletion to preserve reply thread integrity."
+  ],
+  "nonGoals": [
+    "Poll results visibility fix — out of scope for this request.",
+    "Three-dot menu for posts (edit/delete/report on posts) — out of scope for this request.",
+    "Admin panel reporting integration — out of scope for this request.",
+    "Location/constituency fields on posts — out of scope for this request.",
+    "Real-time comment updates via WebSocket — not supported on this platform."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

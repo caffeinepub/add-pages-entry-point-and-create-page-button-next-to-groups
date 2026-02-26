@@ -1,0 +1,307 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* App Background */
+    --app-background: 0.97 0.01 240;
+    
+    /* Saffron - Primary Brand Color */
+    --saffron: 0.70 0.15 50;
+    --saffron-light: 0.80 0.12 50;
+    --saffron-dark: 0.60 0.18 50;
+    
+    /* Deep Blue - Secondary Brand Color */
+    --deep-blue: 0.45 0.12 250;
+    --deep-blue-dark: 0.35 0.15 250;
+    --deep-blue-light: 0.55 0.10 250;
+    
+    /* Base Colors */
+    --background: 1 0 0;
+    --foreground: 0.15 0.02 250;
+    
+    /* Card */
+    --card: 1 0 0;
+    --card-foreground: 0.15 0.02 250;
+    
+    /* Popover */
+    --popover: 1 0 0;
+    --popover-foreground: 0.15 0.02 250;
+    
+    /* Primary */
+    --primary: 0.45 0.12 250;
+    --primary-foreground: 1 0 0;
+    
+    /* Secondary */
+    --secondary: 0.96 0.01 250;
+    --secondary-foreground: 0.15 0.02 250;
+    
+    /* Muted */
+    --muted: 0.96 0.01 250;
+    --muted-foreground: 0.50 0.02 250;
+    
+    /* Accent */
+    --accent: 0.70 0.15 50;
+    --accent-foreground: 0.15 0.02 250;
+    
+    /* Destructive */
+    --destructive: 0.55 0.20 25;
+    --destructive-foreground: 1 0 0;
+    
+    /* Border */
+    --border: 0.90 0.01 250;
+    --input: 0.90 0.01 250;
+    --ring: 0.45 0.12 250;
+    
+    /* Radius */
+    --radius: 0.75rem;
+    
+    /* Chart Colors */
+    --chart-1: 0.60 0.15 200;
+    --chart-2: 0.70 0.15 50;
+    --chart-3: 0.55 0.18 150;
+    --chart-4: 0.65 0.12 300;
+    --chart-5: 0.50 0.20 100;
+    
+    /* Sidebar */
+    --sidebar: 1 0 0;
+    --sidebar-foreground: 0.15 0.02 250;
+    --sidebar-primary: 0.45 0.12 250;
+    --sidebar-primary-foreground: 1 0 0;
+    --sidebar-accent: 0.96 0.01 250;
+    --sidebar-accent-foreground: 0.15 0.02 250;
+    --sidebar-border: 0.90 0.01 250;
+    --sidebar-ring: 0.45 0.12 250;
+  }
+
+  .dark {
+    --app-background: 0.15 0.02 250;
+    
+    --background: 0.15 0.02 250;
+    --foreground: 0.95 0.01 250;
+    
+    --card: 0.18 0.02 250;
+    --card-foreground: 0.95 0.01 250;
+    
+    --popover: 0.18 0.02 250;
+    --popover-foreground: 0.95 0.01 250;
+    
+    --primary: 0.55 0.10 250;
+    --primary-foreground: 0.15 0.02 250;
+    
+    --secondary: 0.25 0.02 250;
+    --secondary-foreground: 0.95 0.01 250;
+    
+    --muted: 0.25 0.02 250;
+    --muted-foreground: 0.60 0.02 250;
+    
+    --accent: 0.70 0.15 50;
+    --accent-foreground: 0.15 0.02 250;
+    
+    --destructive: 0.50 0.20 25;
+    --destructive-foreground: 0.95 0.01 250;
+    
+    --border: 0.25 0.02 250;
+    --input: 0.25 0.02 250;
+    --ring: 0.55 0.10 250;
+    
+    --sidebar: 0.18 0.02 250;
+    --sidebar-foreground: 0.95 0.01 250;
+    --sidebar-primary: 0.55 0.10 250;
+    --sidebar-primary-foreground: 0.15 0.02 250;
+    --sidebar-accent: 0.25 0.02 250;
+    --sidebar-accent-foreground: 0.95 0.01 250;
+    --sidebar-border: 0.25 0.02 250;
+    --sidebar-ring: 0.55 0.10 250;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  html, body {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', 'Poppins', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Prevent horizontal scroll on Android */
+    position: relative;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+  .bg-app-background {
+    background-color: oklch(var(--app-background));
+  }
+  
+  .text-saffron {
+    color: oklch(var(--saffron));
+  }
+  
+  .bg-saffron {
+    background-color: oklch(var(--saffron));
+  }
+  
+  .text-deep-blue {
+    color: oklch(var(--deep-blue));
+  }
+  
+  .bg-deep-blue {
+    background-color: oklch(var(--deep-blue));
+  }
+  
+  .bg-deep-blue-dark {
+    background-color: oklch(var(--deep-blue-dark));
+  }
+  
+  .from-saffron {
+    --tw-gradient-from: oklch(var(--saffron)) var(--tw-gradient-from-position);
+  }
+  
+  .to-saffron {
+    --tw-gradient-to: oklch(var(--saffron)) var(--tw-gradient-to-position);
+  }
+  
+  .via-saffron {
+    --tw-gradient-via: oklch(var(--saffron)) var(--tw-gradient-via-position);
+  }
+  
+  .from-deep-blue {
+    --tw-gradient-from: oklch(var(--deep-blue)) var(--tw-gradient-from-position);
+  }
+  
+  .to-deep-blue {
+    --tw-gradient-to: oklch(var(--deep-blue)) var(--tw-gradient-to-position);
+  }
+  
+  .via-deep-blue {
+    --tw-gradient-via: oklch(var(--deep-blue)) var(--tw-gradient-via-position);
+  }
+  
+  .to-deep-blue-dark {
+    --tw-gradient-to: oklch(var(--deep-blue-dark)) var(--tw-gradient-to-position);
+  }
+  
+  .shadow-soft {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+  
+  .shadow-premium {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06);
+  }
+  
+  .shadow-premium-top {
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08), 0 -2px 4px rgba(0, 0, 0, 0.06);
+  }
+  
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* xs breakpoint helper for very small screens */
+  .xs\:inline {
+    display: inline;
+  }
+}
+
+/* Remove tap highlights on mobile */
+button, a, input, textarea, select {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: oklch(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(var(--muted-foreground) / 0.5);
+}
+
+/* Smooth transitions - only for color properties to avoid layout jank */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* App container layout */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Touch-friendly targets - Android minimum 44px */
+@media (max-width: 768px) {
+  button, a[role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Android-specific responsive fixes (360dp - 412dp) */
+@media (max-width: 412px) {
+  /* Prevent any fixed-width elements from causing overflow */
+  .modal-content,
+  [role="dialog"] {
+    max-width: calc(100vw - 2rem) !important;
+    width: 100% !important;
+  }
+
+  /* Ensure cards don't overflow */
+  .card, [class*="rounded-2xl"], [class*="rounded-xl"] {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  /* Extra small Android screens */
+  body {
+    font-size: 14px;
+  }
+}
