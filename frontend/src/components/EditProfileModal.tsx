@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSaveUserProfile, useGetCallerUserProfile } from '../hooks/useQueries';
+import { useSaveCallerUserProfile, useGetCallerUserProfile } from '../hooks/useQueries';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,7 +14,7 @@ interface EditProfileModalProps {
 
 export default function EditProfileModal({ open, onOpenChange }: EditProfileModalProps) {
   const { data: currentProfile } = useGetCallerUserProfile();
-  const saveProfile = useSaveUserProfile();
+  const saveProfile = useSaveCallerUserProfile();
 
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
@@ -48,56 +48,52 @@ export default function EditProfileModal({ open, onOpenChange }: EditProfileModa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent className="max-w-md rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-[oklch(0.15_0_0)]">Edit Profile</DialogTitle>
+          <DialogTitle>Edit Profile</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="edit-name" className="text-sm font-semibold text-[oklch(0.15_0_0)] mb-2 block">
-              Name *
-            </Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="name">Name</Label>
             <Input
-              id="edit-name"
+              id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
               required
-              className="bg-white border-[oklch(0.70_0.02_250)] text-[oklch(0.15_0_0)] placeholder:text-[oklch(0.50_0.03_250)] focus:border-[oklch(0.45_0.12_250)] focus:ring-2 focus:ring-[oklch(0.45_0.12_250/0.2)]"
             />
           </div>
-          <div>
-            <Label htmlFor="edit-bio" className="text-sm font-semibold text-[oklch(0.15_0_0)] mb-2 block">
-              Bio
-            </Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="bio">Bio</Label>
             <Textarea
-              id="edit-bio"
+              id="bio"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              placeholder="Political enthusiast, writer, and social activist"
+              placeholder="Tell us about yourself"
               rows={3}
-              className="bg-white border-[oklch(0.70_0.02_250)] text-[oklch(0.15_0_0)] placeholder:text-[oklch(0.50_0.03_250)] focus:border-[oklch(0.45_0.12_250)] focus:ring-2 focus:ring-[oklch(0.45_0.12_250/0.2)]"
+              className="resize-none"
             />
           </div>
-          <div>
+          <div className="space-y-1.5">
+            <Label>Location</Label>
             <HierarchicalLocationSelector
               value={location}
               onChange={setLocation}
-              initialLocation={currentProfile?.location}
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-2">
             <Button
               type="button"
               variant="outline"
-              className="flex-1 border-[oklch(0.70_0.02_250)] text-[oklch(0.15_0_0)] hover:bg-[oklch(0.92_0.01_250)] font-medium"
               onClick={() => onOpenChange(false)}
+              className="flex-1"
+              disabled={saveProfile.isPending}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)] text-white font-semibold"
+              className="flex-1"
               disabled={!name.trim() || saveProfile.isPending}
             >
               {saveProfile.isPending ? 'Saving...' : 'Save Changes'}

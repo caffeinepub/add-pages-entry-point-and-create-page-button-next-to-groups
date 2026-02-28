@@ -8,7 +8,7 @@ import { getBackendErrorMessage } from '../utils/backendErrors';
 import { toast } from 'sonner';
 
 interface QuickPostBarProps {
-  groupId?: bigint | null;
+  groupId?: bigint | number | null;
   onPostCreated?: () => void;
 }
 
@@ -83,14 +83,16 @@ export default function QuickPostBar({ groupId = null, onPostCreated }: QuickPos
       }
 
       const content = {
-        text: trimmed || undefined,
-        image: imageBlob ?? undefined,
-        video: videoBlob ?? undefined,
+        text: trimmed || null,
+        image: imageBlob,
+        video: videoBlob,
       };
 
-      await createPost.mutateAsync({ content, groupId: groupId ?? null });
+      const numGroupId =
+        groupId !== null && groupId !== undefined ? Number(groupId) : undefined;
 
-      toast.success('Post created!');
+      await createPost.mutateAsync({ content, groupId: numGroupId });
+
       setOpen(false);
       setText('');
       clearMedia();

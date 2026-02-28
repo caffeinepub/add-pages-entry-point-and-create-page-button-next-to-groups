@@ -1,186 +1,157 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import React, { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useSubmitReport } from '../hooks/useQueries';
+// Use regular import (not import type) so enums can be used as values
 import { ReportReason, ReportTargetType } from '../types';
-import { AlertCircle } from 'lucide-react';
+import { Loader2, Flag } from 'lucide-react';
 
 interface ReportModalProps {
   isOpen: boolean;
   onClose: () => void;
   targetType: 'post' | 'comment' | 'profile';
-  targetId: bigint;
+  targetId: number;
 }
 
-export default function ReportModal({ isOpen, onClose, targetType, targetId }: ReportModalProps) {
+const REPORT_REASONS: { value: string; label: string }[] = [
+  { value: 'spam', label: 'Spam' },
+  { value: 'misinformation', label: 'Fake News / Misinformation' },
+  { value: 'inappropriateContent', label: 'Abusive Content' },
+  { value: 'harassment', label: 'Political Misinformation / Harassment' },
+  { value: 'other', label: 'Other' },
+];
+
+export default function ReportModal({
+  isOpen,
+  onClose,
+  targetType,
+  targetId,
+}: ReportModalProps) {
   const [selectedReason, setSelectedReason] = useState<string>('');
   const [details, setDetails] = useState('');
-  const [error, setError] = useState<string>('');
   const submitReport = useSubmitReport();
 
-  const reasons = [
-    { value: 'spam', label: 'Spam', description: 'Repetitive or unsolicited content' },
-    { value: 'misinformation', label: 'Misinformation', description: 'False or misleading information' },
-    { value: 'inappropriateContent', label: 'Inappropriate Content', description: 'Offensive or unsuitable material' },
-    { value: 'harassment', label: 'Harassment', description: 'Bullying or threatening behavior' },
-    { value: 'other', label: 'Other', description: 'Other concerns not listed above' },
-  ];
+  const getTargetTypeBackend = (): ReportTargetType => {
+    if (targetType === 'post') return ReportTargetType.post;
+    if (targetType === 'comment') return ReportTargetType.comment;
+    return ReportTargetType.profile;
+  };
 
-  const handleSubmit = async () => {
-    if (!selectedReason) {
-      setError('Please select a reason for reporting');
-      return;
-    }
-
-    setError('');
-
-    // Map string to ReportReason enum
-    let reasonEnum: ReportReason;
+  const getReasonBackend = (): ReportReason => {
     switch (selectedReason) {
       case 'spam':
-        reasonEnum = ReportReason.spam;
-        break;
+        return ReportReason.spam;
       case 'misinformation':
-        reasonEnum = ReportReason.misinformation;
-        break;
+        return ReportReason.misinformation;
       case 'inappropriateContent':
-        reasonEnum = ReportReason.inappropriateContent;
-        break;
+        return ReportReason.inappropriateContent;
       case 'harassment':
-        reasonEnum = ReportReason.harassment;
-        break;
-      case 'other':
-        reasonEnum = ReportReason.other;
-        break;
+        return ReportReason.harassment;
       default:
-        reasonEnum = ReportReason.other;
+        return ReportReason.other;
     }
+  };
 
-    // Map string to ReportTargetType enum
-    let targetTypeEnum: ReportTargetType;
-    switch (targetType) {
-      case 'post':
-        targetTypeEnum = ReportTargetType.post;
-        break;
-      case 'comment':
-        targetTypeEnum = ReportTargetType.comment;
-        break;
-      case 'profile':
-        targetTypeEnum = ReportTargetType.profile;
-        break;
-      default:
-        targetTypeEnum = ReportTargetType.post;
-    }
-
+  const handleSubmit = async () => {
+    if (!selectedReason) return;
     try {
       await submitReport.mutateAsync({
-        targetType: targetTypeEnum,
+        targetType: getTargetTypeBackend(),
         targetId,
-        reason: reasonEnum,
-        details: details.trim(),
+        reason: getReasonBackend(),
+        details,
       });
-      
-      // Reset form and close
       setSelectedReason('');
       setDetails('');
-      setError('');
       onClose();
-    } catch (error) {
-      console.error('Error submitting report:', error);
-      setError('Failed to submit report. Please try again.');
+    } catch {
+      // error handled by mutation
     }
   };
 
   const handleClose = () => {
     setSelectedReason('');
     setDetails('');
-    setError('');
     onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] bg-white z-[10000] border-[oklch(0.70_0.02_250)]">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-sm mx-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <AlertCircle className="h-6 w-6 text-[oklch(0.45_0.12_250)]" />
-            Report Content
+          <DialogTitle className="flex items-center gap-2">
+            <Flag className="w-5 h-5 text-destructive" />
+            Report{' '}
+            {targetType === 'post'
+              ? 'Post'
+              : targetType === 'comment'
+              ? 'Comment'
+              : 'Profile'}
           </DialogTitle>
-          <DialogDescription className="text-muted-foreground text-base">
-            Help us maintain a respectful civic discussion platform. Your report will be reviewed by our moderation team.
-          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          <div className="space-y-3">
-            <Label className="text-base font-semibold text-foreground">
-              Reason for Report <span className="text-destructive">*</span>
-            </Label>
-            {error && (
-              <p className="text-sm text-destructive font-medium">{error}</p>
-            )}
-            <RadioGroup value={selectedReason} onValueChange={setSelectedReason}>
-              {reasons.map((reason) => (
-                <div 
-                  key={reason.value} 
-                  className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-[oklch(0.70_0.02_250)]"
+        <div className="space-y-4 py-2">
+          <p className="text-sm text-muted-foreground">
+            Why are you reporting this {targetType}? Your report will be reviewed by our
+            admin team.
+          </p>
+
+          <RadioGroup value={selectedReason} onValueChange={setSelectedReason}>
+            <div className="space-y-2">
+              {REPORT_REASONS.map((reason) => (
+                <div
+                  key={reason.value}
+                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <RadioGroupItem 
-                    value={reason.value} 
-                    id={reason.value} 
-                    className="mt-1 border-[oklch(0.60_0.02_250)] data-[state=checked]:border-[oklch(0.45_0.12_250)] data-[state=checked]:bg-[oklch(0.45_0.12_250)]" 
-                  />
-                  <div className="flex-1">
-                    <Label
-                      htmlFor={reason.value}
-                      className="text-sm font-semibold text-foreground cursor-pointer"
-                    >
-                      {reason.label}
-                    </Label>
-                    <p className="text-xs text-muted-foreground mt-1">{reason.description}</p>
-                  </div>
+                  <RadioGroupItem value={reason.value} id={`reason-${reason.value}`} />
+                  <Label
+                    htmlFor={`reason-${reason.value}`}
+                    className="text-sm font-medium cursor-pointer flex-1"
+                  >
+                    {reason.label}
+                  </Label>
                 </div>
               ))}
-            </RadioGroup>
-          </div>
+            </div>
+          </RadioGroup>
 
-          <div className="space-y-2">
-            <Label htmlFor="details" className="text-base font-semibold text-foreground">
-              Additional Details (Optional)
-            </Label>
+          {selectedReason === 'other' && (
             <Textarea
-              id="details"
+              placeholder="Please provide additional details..."
               value={details}
               onChange={(e) => setDetails(e.target.value)}
-              placeholder="Provide any additional context that might help us understand your concern..."
-              rows={4}
-              className="resize-none border-[oklch(0.70_0.02_250)] focus:border-[oklch(0.45_0.12_250)] focus:ring-[oklch(0.45_0.12_250)]"
-              maxLength={500}
+              className="text-sm resize-none"
+              rows={3}
             />
-            <p className="text-xs text-muted-foreground text-right">
-              {details.length}/500 characters
-            </p>
-          </div>
+          )}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button
-            variant="outline"
-            onClick={handleClose}
-            disabled={submitReport.isPending}
-            className="border-[oklch(0.70_0.02_250)] hover:bg-muted"
-          >
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={handleClose} disabled={submitReport.isPending}>
             Cancel
           </Button>
           <Button
+            variant="destructive"
             onClick={handleSubmit}
             disabled={!selectedReason || submitReport.isPending}
-            className="bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)] text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitReport.isPending ? 'Submitting...' : 'Submit Report'}
+            {submitReport.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              'Submit Report'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -83,7 +83,7 @@ export default function UserProfilePage() {
   }
 
   const profilePhotoUrl = userProfile?.profilePhoto
-    ? userProfile.profilePhoto.getDirectURL()
+    ? (userProfile.profilePhoto as any).getDirectURL?.()
     : null;
 
   return (
@@ -132,9 +132,13 @@ export default function UserProfilePage() {
               {followUser.isPending || unfollowUser.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : isFollowing ? (
-                <><UserMinus className="w-4 h-4" /> Unfollow</>
+                <>
+                  <UserMinus className="w-4 h-4" /> Unfollow
+                </>
               ) : (
-                <><UserPlus className="w-4 h-4" /> Follow</>
+                <>
+                  <UserPlus className="w-4 h-4" /> Follow
+                </>
               )}
             </button>
           )}
@@ -181,22 +185,18 @@ export default function UserProfilePage() {
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
         ) : userPosts.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground text-sm">
-            No posts yet
-          </div>
+          <div className="text-center py-8 text-muted-foreground text-sm">No posts yet</div>
         ) : (
-          userPosts.map((post) => (
-            <PostCard key={post.id.toString()} post={post} />
-          ))
+          userPosts.map((post) => <PostCard key={post.id.toString()} post={post} />)
         )}
       </div>
 
-      {/* Report Modal — uses isOpen/onClose props */}
+      {/* Report Modal — targetId is number, use 0 as placeholder for profile reports */}
       <ReportModal
         isOpen={showReport}
         onClose={() => setShowReport(false)}
         targetType="profile"
-        targetId={BigInt(0)}
+        targetId={0}
       />
     </div>
   );

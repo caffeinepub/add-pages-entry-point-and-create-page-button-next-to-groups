@@ -9,10 +9,14 @@ import { toast } from 'sonner';
 interface CreateGroupPostModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  groupId: bigint;
+  groupId: bigint | number;
 }
 
-export default function CreateGroupPostModal({ open, onOpenChange, groupId }: CreateGroupPostModalProps) {
+export default function CreateGroupPostModal({
+  open,
+  onOpenChange,
+  groupId,
+}: CreateGroupPostModalProps) {
   const [text, setText] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -51,7 +55,7 @@ export default function CreateGroupPostModal({ open, onOpenChange, groupId }: Cr
     }
 
     try {
-      let imageBlob: ExternalBlob | undefined = undefined;
+      let imageBlob: ExternalBlob | null = null;
       if (imageFile) {
         const bytes = new Uint8Array(await imageFile.arrayBuffer());
         imageBlob = ExternalBlob.fromBytes(bytes).withUploadProgress((pct) =>
@@ -60,12 +64,12 @@ export default function CreateGroupPostModal({ open, onOpenChange, groupId }: Cr
       }
 
       const content = {
-        text: trimmed || undefined,
+        text: trimmed || null,
         image: imageBlob,
-        video: undefined,
+        video: null,
       };
 
-      await createPost.mutateAsync({ content, groupId });
+      await createPost.mutateAsync({ content, groupId: Number(groupId) });
       toast.success('Post created!');
       onOpenChange(false);
       setText('');
@@ -81,6 +85,7 @@ export default function CreateGroupPostModal({ open, onOpenChange, groupId }: Cr
         <DialogHeader>
           <DialogTitle>Create Group Post</DialogTitle>
         </DialogHeader>
+
         <div className="space-y-3">
           <textarea
             value={text}
@@ -92,7 +97,11 @@ export default function CreateGroupPostModal({ open, onOpenChange, groupId }: Cr
 
           {imagePreview && (
             <div className="relative rounded-xl overflow-hidden">
-              <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-cover" />
+              <img
+                src={imagePreview}
+                alt="Preview"
+                className="w-full max-h-48 object-cover"
+              />
               <button
                 onClick={clearImage}
                 className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1"
@@ -111,7 +120,7 @@ export default function CreateGroupPostModal({ open, onOpenChange, groupId }: Cr
           )}
 
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex gap-2">
               <input
                 ref={imageInputRef}
                 type="file"
@@ -134,9 +143,15 @@ export default function CreateGroupPostModal({ open, onOpenChange, groupId }: Cr
               className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50"
             >
               {createPost.isPending ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Posting...</>
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Posting...
+                </>
               ) : (
-                <><Send className="w-4 h-4" /> Post</>
+                <>
+                  <Send className="w-4 h-4" />
+                  Post
+                </>
               )}
             </button>
           </div>

@@ -1,80 +1,35 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T03:30:00.942Z",
+  "generatedAt": "2026-02-28T06:19:18.838Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 5,
-    "implemented": 3,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Define a Comment data type in the backend with fields: id (Nat), postId (Text), authorId (Principal), content (Text), createdAt (Int), updatedAt (opt Int), parentCommentId (opt Nat), likes (array of Principal), isDeleted (Bool). Store comments in a stable var array or HashMap keyed by comment id.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Implement the following backend query and update functions for comments: addComment(postId: Text, content: Text, parentCommentId: ?Nat) returns new comment id; getCommentsByPost(postId: Text) returns array of all non-deleted comments for that post; editComment(commentId: Nat, newContent: Text) allows only the comment author to update content; deleteComment(commentId: Nat) marks the comment as deleted (soft delete) only if caller is the author; likeComment(commentId: Nat) toggles the caller's Principal in the comment's likes array; getCommentLikeCount(commentId: Nat) returns the like count.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Add React Query hooks in frontend/src/hooks/useQueries.ts for the comment system: useGetCommentsByPost(postId) fetches comments for a post; useMutationAddComment() calls addComment; useMutationEditComment() calls editComment; useMutationDeleteComment() calls deleteComment; useMutationLikeComment() calls likeComment. All mutation hooks must invalidate the useGetCommentsByPost query on success so comments refresh instantly without a page reload.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts"
-        ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Create a new frontend component frontend/src/components/CommentSection.tsx that renders the full comment UI for a given postId. The component must: display a list of comments showing the author's profile image (or a default avatar), username, relative timestamp (e.g., '2m ago'), and comment text; support nested replies rendered indented under their parent comment; show an input field to add a new top-level comment with a loading spinner while posting; show success and error toast messages after submission attempts; display a three-dot (⋮) context menu on each comment with 'Edit' and 'Delete' options visible only to the comment's author, and a 'Report' option visible to other authenticated users; support an inline reply input triggered per-comment; support inline edit mode replacing comment text with an editable input; show like button with count on each comment; use the React Query hooks from REQ-3 for all data operations.",
+        "summary": "Fix the comment action dropdown menu (containing Edit and Delete options) in CommentSection.tsx so it is always fully visible regardless of where the comment appears on the screen. The menu is currently being clipped or cut off due to container overflow constraints or incorrect positioning. Use a portal-based rendering approach or switch to a fixed/absolute positioning strategy that accounts for viewport boundaries (e.g., flip the dropdown upward when near the bottom of the screen, and ensure no ancestor container with overflow:hidden clips it).",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/components/CommentSection.tsx"
         ],
         "matchedFiles": [
           "frontend/src/components/CommentSection.tsx"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Integrate the CommentSection component into the PostCard component (frontend/src/components/PostCard.tsx). Add a collapsible comment section below each post that is shown/hidden when the user clicks a 'Comment' button or icon. Pass the post's id as the postId prop to CommentSection.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/PostCard.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/PostCard.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
-    "build-template/README.md",
-    "caffeine.lock.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
     "frontend/src/components/CommentSection.tsx",
-    "frontend/src/components/PostCard.tsx",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/components/PollCard.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

@@ -1,13 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Fix the comment section in CivWorld by implementing full backend persistence and a complete frontend comment UI with add, reply, like, edit, and delete functionality.
+**Goal:** Fix the comment Edit/Delete dropdown menu being clipped or cut off in CommentSection.tsx so it is always fully visible on screen.
 
 **Planned changes:**
-- Define a `Comment` data type in the backend with fields for id, postId, authorId, content, timestamps, parentCommentId (for nesting), likes array, and isDeleted flag; store in stable storage
-- Implement backend functions: `addComment`, `getCommentsByPost`, `editComment`, `deleteComment` (soft delete), `likeComment`, and `getCommentLikeCount`; enforce author-only edit/delete and require authenticated callers
-- Add React Query hooks in `useQueries.ts`: `useGetCommentsByPost`, `useMutationAddComment`, `useMutationEditComment`, `useMutationDeleteComment`, `useMutationLikeComment`; all mutations invalidate the comments query on success
-- Create a `CommentSection.tsx` component displaying comments with author avatar, username, relative timestamp, nested replies (indented), like button with count, inline reply/edit inputs, loading spinner on submit, success/error toasts, and a three-dot context menu (Edit/Delete for authors, Report for others)
-- Integrate `CommentSection` into `PostCard.tsx` as a collapsible section toggled by a Comment button, passing the post's id as `postId`; hidden by default to avoid unnecessary backend calls
+- Update the comment action dropdown menu in `CommentSection.tsx` to use a portal-based rendering approach or fixed/absolute positioning that respects viewport boundaries
+- Ensure the dropdown flips upward when there is insufficient space below the trigger button
+- Remove any ancestor `overflow:hidden` constraints that clip the dropdown
+- Apply the fix consistently for both top-level comments and nested replies
 
-**User-visible outcome:** Users can open a comment section on any post, add top-level comments or nested replies, like comments, and edit or delete their own comments — all persisted to the backend and reflected instantly without a page refresh.
+**User-visible outcome:** The Edit and Delete options in the comment dropdown menu are fully visible for every comment, regardless of its position on screen or nesting level, with no clipping or cut-off.

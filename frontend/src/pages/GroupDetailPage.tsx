@@ -21,20 +21,21 @@ export default function GroupDetailPage() {
   const { identity } = useInternetIdentity();
   const [showCreatePost, setShowCreatePost] = useState(false);
 
-  const groupIdBigInt = BigInt(groupId);
+  // Use number for all hooks (they accept bigint | number)
+  const groupIdNum = Number(groupId);
   const userId = identity?.getPrincipal().toString();
 
-  const { data: group, isLoading: groupLoading } = useGetGroup(groupIdBigInt);
-  const { data: members = [] } = useGetGroupMembers(groupIdBigInt);
-  const { data: posts = [], isLoading: postsLoading } = useGetGroupPosts(groupIdBigInt);
-  const { data: isMember = false } = useIsUserInGroup(groupIdBigInt, userId);
+  const { data: group, isLoading: groupLoading } = useGetGroup(groupIdNum);
+  const { data: members = [] } = useGetGroupMembers(groupIdNum);
+  const { data: posts = [], isLoading: postsLoading } = useGetGroupPosts(groupIdNum);
+  const { data: isMember = false } = useIsUserInGroup(groupIdNum, userId);
 
   const joinGroup = useJoinGroup();
   const leaveGroup = useLeaveGroup();
 
   const handleJoin = async () => {
     try {
-      await joinGroup.mutateAsync(groupIdBigInt);
+      await joinGroup.mutateAsync(groupIdNum);
       toast.success('Joined group!');
     } catch (err) {
       toast.error(getBackendErrorMessage(err));
@@ -43,7 +44,7 @@ export default function GroupDetailPage() {
 
   const handleLeave = async () => {
     try {
-      await leaveGroup.mutateAsync(groupIdBigInt);
+      await leaveGroup.mutateAsync(groupIdNum);
       toast.success('Left group');
     } catch (err) {
       toast.error(getBackendErrorMessage(err));
@@ -72,8 +73,9 @@ export default function GroupDetailPage() {
     );
   }
 
-  const coverUrl = group.coverImage ? group.coverImage.getDirectURL() : null;
-  const isCreator = identity && group.creator.toString() === identity.getPrincipal().toString();
+  const coverUrl = group.coverImage ? (group.coverImage as any).getDirectURL?.() : null;
+  const isCreator =
+    identity && group.creator.toString() === identity.getPrincipal().toString();
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -165,16 +167,14 @@ export default function GroupDetailPage() {
             No posts yet in this group
           </div>
         ) : (
-          posts.map((post) => (
-            <PostCard key={post.id.toString()} post={post} />
-          ))
+          posts.map((post) => <PostCard key={post.id.toString()} post={post} />)
         )}
       </div>
 
       <CreateGroupPostModal
         open={showCreatePost}
         onOpenChange={setShowCreatePost}
-        groupId={groupIdBigInt}
+        groupId={groupIdNum}
       />
     </div>
   );

@@ -1,31 +1,21 @@
-import { useNavigate, useLocation } from '@tanstack/react-router';
-import { User, Wallet, LogIn, LogOut, Loader2 } from 'lucide-react';
-import { useView } from '../context/ViewContext';
+import React from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useGetCallerUserProfile } from '../hooks/useQueries';
 import { useQueryClient } from '@tanstack/react-query';
+import { useView } from '../context/ViewContext';
+import { useIsAdmin } from '../hooks/useQueries';
+import { Shield, Wallet, User, LogOut, LogIn, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function Header() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { currentView, setCurrentView } = useView();
-  const { identity, login, clear, loginStatus, isInitializing } = useInternetIdentity();
-  const { data: userProfile } = useGetCallerUserProfile();
+  const { login, clear, loginStatus, identity } = useInternetIdentity();
   const queryClient = useQueryClient();
+  const { currentView, setCurrentView } = useView();
+  const { data: isAdmin } = useIsAdmin();
 
   const isAuthenticated = !!identity;
   const isLoggingIn = loginStatus === 'logging-in';
-  const isWalletActive = location.pathname === '/wallet' || location.pathname === '/wallet-points';
-
-  const handleAppToggle = () => {
-    setCurrentView('app');
-    navigate({ to: '/' });
-  };
-
-  const handleWalletToggle = () => {
-    setCurrentView('wallet');
-    navigate({ to: '/wallet' });
-  };
 
   const handleAuth = async () => {
     if (isAuthenticated) {
@@ -36,7 +26,6 @@ export default function Header() {
       try {
         await login();
       } catch (error: any) {
-        console.error('Login error:', error);
         if (error?.message === 'User is already authenticated') {
           await clear();
           setTimeout(() => login(), 300);
@@ -45,89 +34,103 @@ export default function Header() {
     }
   };
 
-  const greeting = userProfile?.name
-    ? `Hi, ${userProfile.name.split(' ')[0]}`
-    : isAuthenticated
-    ? 'Welcome back'
-    : 'CivWorld';
-
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-border/30 shadow-sm">
-      <div className="flex items-center justify-between px-3 py-2.5 gap-2">
-        {/* Left: Greeting */}
-        <div className="flex-shrink-0 min-w-0 max-w-[90px]">
-          <p className="text-[10px] text-muted-foreground font-medium truncate">Good day 👋</p>
-          <h1 className="text-sm font-bold text-foreground leading-tight truncate">{greeting}</h1>
-        </div>
+    <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border shadow-sm">
+      <div className="flex items-center justify-between px-4 py-3 max-w-2xl mx-auto">
+        {/* Logo */}
+        <button
+          onClick={() => navigate({ to: '/' })}
+          className="flex items-center gap-2 font-bold text-lg text-primary"
+        >
+          <img
+            src="/assets/generated/civworld-app-icon.dim_1024x1024.png"
+            alt="CivWorld"
+            className="w-8 h-8 rounded-lg object-cover"
+          />
+          <span className="hidden sm:block">CivWorld</span>
+        </button>
 
-        {/* Center: App / Wallet Toggle */}
-        <div className="flex items-center bg-muted/60 rounded-full p-1 gap-1 flex-shrink-0">
-          <button
-            onClick={handleAppToggle}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 min-h-[32px] ${
-              !isWalletActive
-                ? 'bg-white text-primary shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            App
-          </button>
-          <button
-            onClick={handleWalletToggle}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 min-h-[32px] ${
-              isWalletActive
-                ? 'bg-white text-primary shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Wallet
-          </button>
-        </div>
-
-        {/* Right: Icons */}
-        <div className="flex items-center justify-end gap-1 flex-shrink-0">
-          {/* Wallet icon */}
-          <button
-            onClick={() => navigate({ to: '/wallet' })}
-            className="p-2 rounded-full hover:bg-muted/60 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
-            aria-label="Wallet"
-          >
-            <Wallet size={18} className="text-muted-foreground" />
-          </button>
-
-          {/* Profile icon (only when authenticated) */}
-          {isAuthenticated && (
+        {/* Center: App/Wallet toggle */}
+        {isAuthenticated && (
+          <div className="flex items-center bg-muted rounded-full p-1 gap-1">
             <button
-              onClick={() => navigate({ to: '/profile' })}
-              className="p-2 rounded-full hover:bg-muted/60 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
-              aria-label="Profile"
+              onClick={() => {
+                setCurrentView('app');
+                navigate({ to: '/' });
+              }}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                currentView === 'app'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
             >
-              <User size={18} className="text-muted-foreground" />
+              App
             </button>
+            <button
+              onClick={() => {
+                setCurrentView('wallet');
+                navigate({ to: '/wallet' });
+              }}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                currentView === 'wallet'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Wallet
+            </button>
+          </div>
+        )}
+
+        {/* Right actions */}
+        <div className="flex items-center gap-2">
+          {/* Admin link */}
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate({ to: '/admin' })}
+              className="h-9 w-9 rounded-full"
+              title="Admin Panel"
+            >
+              <Shield className="w-4 h-4 text-primary" />
+            </Button>
           )}
 
-          {/* Login / Logout button */}
-          <button
+          {/* Profile */}
+          {isAuthenticated && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate({ to: '/profile' })}
+              className="h-9 w-9 rounded-full"
+            >
+              <User className="w-4 h-4" />
+            </Button>
+          )}
+
+          {/* Login/Logout */}
+          <Button
             onClick={handleAuth}
-            disabled={isLoggingIn || isInitializing}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 min-h-[36px] disabled:opacity-60 ${
-              isAuthenticated
-                ? 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
-                : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
-            }`}
-            aria-label={isAuthenticated ? 'Logout' : 'Login'}
+            disabled={isLoggingIn}
+            size="sm"
+            variant={isAuthenticated ? 'outline' : 'default'}
+            className="rounded-full text-xs px-3 h-8"
           >
             {isLoggingIn ? (
-              <Loader2 size={14} className="animate-spin" />
+              <Loader2 className="w-3 h-3 animate-spin" />
             ) : isAuthenticated ? (
-              <LogOut size={14} />
+              <>
+                <LogOut className="w-3 h-3 mr-1" />
+                Logout
+              </>
             ) : (
-              <LogIn size={14} />
+              <>
+                <LogIn className="w-3 h-3 mr-1" />
+                Login
+              </>
             )}
-            <span className="hidden xs:inline">
-              {isLoggingIn ? 'Logging in...' : isAuthenticated ? 'Logout' : 'Login'}
-            </span>
-          </button>
+          </Button>
         </div>
       </div>
     </header>

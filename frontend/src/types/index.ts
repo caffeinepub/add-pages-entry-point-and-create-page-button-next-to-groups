@@ -53,12 +53,17 @@ export interface Post {
   postType: PostType;
 }
 
-// Comment Types
+// Comment Types — matches the backend Comment shape
 export interface Comment {
-  postId: bigint;
-  author: Principal;
+  id: bigint;
+  postId: string;
+  authorId: Principal;
   content: string;
-  timestamp: bigint;
+  createdAt: bigint;
+  updatedAt: bigint | null | undefined;
+  parentCommentId: bigint | null | undefined | bigint[];
+  likes: Principal[];
+  isDeleted: boolean;
 }
 
 // Poll Types

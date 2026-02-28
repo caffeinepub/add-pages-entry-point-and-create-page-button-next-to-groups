@@ -4,10 +4,10 @@ import { Plus, Users, FileText, Loader2, ChevronRight } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useGetGroups, useGetAllPages } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { Group, Page } from '../backend';
+import type { Group, Page } from '../types';
 
 function GroupCard({ group, onClick }: { group: Group; onClick: () => void }) {
-  const coverUrl = group.coverImage ? group.coverImage.getDirectURL() : null;
+  const coverUrl = group.coverImage ? (group.coverImage as any).getDirectURL?.() : null;
   return (
     <button
       onClick={onClick}
@@ -32,7 +32,7 @@ function GroupCard({ group, onClick }: { group: Group; onClick: () => void }) {
 }
 
 function PageCard({ page, onClick }: { page: Page; onClick: () => void }) {
-  const imageUrl = page.profileImage ? page.profileImage.getDirectURL() : null;
+  const imageUrl = page.profileImage ? (page.profileImage as any).getDirectURL?.() : null;
   return (
     <button
       onClick={onClick}
@@ -100,7 +100,12 @@ export default function CommunitiesPage() {
                   <GroupCard
                     key={group.id.toString()}
                     group={group}
-                    onClick={() => navigate({ to: '/groups/$groupId', params: { groupId: group.id.toString() } })}
+                    onClick={() =>
+                      navigate({
+                        to: '/groups/$groupId',
+                        params: { groupId: group.id.toString() },
+                      })
+                    }
                   />
                 ))}
               </div>
@@ -180,10 +185,7 @@ export default function CommunitiesPage() {
 
       {/* Backdrop for FAB menu */}
       {showCreateMenu && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setShowCreateMenu(false)}
-        />
+        <div className="fixed inset-0 z-40" onClick={() => setShowCreateMenu(false)} />
       )}
     </div>
   );

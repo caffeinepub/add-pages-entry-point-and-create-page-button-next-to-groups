@@ -1,61 +1,23 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix Comment Section — Add/Reply/Like/Edit/Delete with Backend Persistence",
+  "title": "Fix comment Edit/Delete dropdown menu clipping/overflow issue",
   "requirements": [
     {
-      "id": "REQ-3",
-      "summary": "Add React Query hooks for comment operations with automatic query invalidation",
+      "id": "REQ-1",
+      "summary": "Fix comment action dropdown menu visibility using portal-based rendering or viewport-aware positioning",
       "acceptanceCriteria": [
-        "useGetCommentsByPost fetches and returns the comments array for a given postId.",
-        "All mutation hooks invalidate the comments query on success, causing an immediate re-fetch.",
-        "Hooks are exported and available for use in comment UI components."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add React Query hooks for the comment system: useGetCommentsByPost(postId) fetches comments for a post; useMutationAddComment() calls addComment backend method; useMutationEditComment() calls editComment backend method; useMutationDeleteComment() calls deleteComment backend method; useMutationLikeComment() calls likeComment backend method. All mutation hooks must invalidate the useGetCommentsByPost query on success to ensure comments refresh instantly without a page reload. Follow the existing pattern in the file for actor-based queries and mutations with proper error handling."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Create CommentSection component with nested replies, inline editing, likes, and permission-based actions",
-      "acceptanceCriteria": [
-        "Comments for a post load and display on mount without a page refresh.",
-        "Submitting a new comment shows a loading indicator and the comment appears in the list immediately after success.",
-        "Replies are indented under their parent comment.",
-        "A toast or inline message is shown on both success and error for add/edit/delete/like actions.",
-        "The three-dot menu shows Edit and Delete only when the logged-in user is the comment author.",
-        "The three-dot menu shows Report to users who are not the author.",
-        "Clicking Edit replaces the comment text with an editable input field.",
-        "Clicking Delete removes the comment from the list after confirmation.",
-        "Like button toggles correctly and displays the current like count.",
-        "Each comment shows the author's avatar (profile photo or default), username, and relative time."
+        "The Edit and Delete options in the comment dropdown menu are fully visible for every comment in the list, including those near the bottom or edges of the screen.",
+        "The dropdown does not get clipped by any parent container's overflow settings.",
+        "The dropdown repositions itself (flips upward or adjusts) when there is insufficient space below the trigger button.",
+        "The fix applies consistently across all comment nesting levels (top-level comments and replies).",
+        "No regression in existing comment actions (like, report, reply) after the fix."
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/CommentSection.tsx",
-          "operation": "create",
-          "description": "Create a comprehensive comment UI component that accepts postId as a prop. Fetch comments using useGetCommentsByPost. Display each comment with: author's profile photo (use getUserProfile to fetch author data, or frontend/public/assets/generated/default-profile.dim_200x200.png as fallback), username, relative timestamp (e.g., '2m ago' using a date utility), and comment text. Render nested replies indented under parent comments (check parentCommentId field). Show an input field for adding top-level comments with a loading spinner while posting (use useMutationAddComment). Display success and error toast messages using a toast library or inline alerts after submission. Implement a three-dot context menu (⋮) on each comment with Edit/Delete options visible only to the comment author (compare comment.authorId with current user's principal using useInternetIdentity), and a Report option visible to non-authors. Support inline reply input per comment (triggered by a Reply button). Support inline edit mode that replaces text with an editable input and Save/Cancel buttons. Show a like button (heart icon) with the current like count (use comment.likes.length) that calls useMutationLikeComment on click. Use the authorization component to check if the user is authenticated before showing interactive elements. Verify the authorization component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Integrate CommentSection into PostCard with collapsible toggle",
-      "acceptanceCriteria": [
-        "Each PostCard displays a comment toggle button.",
-        "Clicking the toggle reveals the CommentSection for that specific post.",
-        "CommentSection is not rendered (or is hidden) by default to avoid unnecessary backend calls.",
-        "The correct postId is passed to CommentSection so comments are scoped to the post."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/PostCard.tsx",
           "operation": "modify",
-          "description": "Add a collapsible comment section to the PostCard component. Include a 'Comment' button or icon in the post action bar that toggles the visibility of the comment section. Use React state to track whether comments are shown for each post. When toggled open, render the CommentSection component and pass the post's id as the postId prop (convert post.id bigint to string using .toString()). When toggled closed, do not render CommentSection to avoid unnecessary backend calls. Ensure the toggle state is local to each PostCard instance so opening comments on one post doesn't affect others."
+          "description": "Replace the current DropdownMenu implementation with a portal-based approach using shadcn/ui DropdownMenuPortal or implement custom viewport-aware positioning logic. Add collision detection to flip the dropdown upward when near the bottom of the viewport. Ensure the dropdown menu container uses fixed or absolute positioning that is not constrained by parent overflow properties. Test the solution with comments at various scroll positions and nesting levels to verify visibility. Preserve all existing comment action handlers (like, report, reply, edit, delete) without modification."
         }
       ]
     }

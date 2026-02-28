@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useGetPosts, useGetGroups } from '../hooks/useQueries';
 import PostCard from '../components/PostCard';
 import { Loader2, TrendingUp, Users, BarChart2 } from 'lucide-react';
-import { Group } from '../backend';
+import type { Group } from '../types';
 import { useNavigate } from '@tanstack/react-router';
 
 export default function ExplorePage() {
@@ -12,7 +12,7 @@ export default function ExplorePage() {
   const { data: groups = [], isLoading: groupsLoading } = useGetGroups();
 
   const trendingPosts = [...posts]
-    .sort((a, b) => Number(b.likeCount - a.likeCount))
+    .sort((a, b) => Number(b.likeCount) - Number(a.likeCount))
     .slice(0, 10);
 
   return (
@@ -76,33 +76,45 @@ export default function ExplorePage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {groups.map((group: Group) => (
-                  <button
-                    key={group.id.toString()}
-                    onClick={() => navigate({ to: '/groups/$groupId', params: { groupId: group.id.toString() } })}
-                    className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl p-3 hover:bg-muted/50 transition-all text-left"
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
-                      {group.coverImage ? (
-                        <img
-                          src={group.coverImage.getDirectURL()}
-                          alt={group.name}
-                          className="w-full h-full object-cover rounded-xl"
-                        />
-                      ) : (
-                        <Users className="w-6 h-6 text-primary" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground text-sm truncate">{group.name}</p>
-                      {group.description && (
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {group.description}
+                {groups.map((group: Group) => {
+                  const coverUrl = group.coverImage
+                    ? (group.coverImage as any).getDirectURL?.()
+                    : null;
+                  return (
+                    <button
+                      key={group.id.toString()}
+                      onClick={() =>
+                        navigate({
+                          to: '/groups/$groupId',
+                          params: { groupId: group.id.toString() },
+                        })
+                      }
+                      className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl p-3 hover:bg-muted/50 transition-all text-left"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        {coverUrl ? (
+                          <img
+                            src={coverUrl}
+                            alt={group.name}
+                            className="w-full h-full object-cover rounded-xl"
+                          />
+                        ) : (
+                          <Users className="w-6 h-6 text-primary" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground text-sm truncate">
+                          {group.name}
                         </p>
-                      )}
-                    </div>
-                  </button>
-                ))}
+                        {group.description && (
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                            {group.description}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </>

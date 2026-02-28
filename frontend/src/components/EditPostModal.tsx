@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Image, Video, X, Loader2, Save } from 'lucide-react';
-import { Post, ExternalBlob } from '../backend';
+import type { Post } from '../types';
+import { ExternalBlob } from '../backend';
 import { useUpdatePost } from '../hooks/useQueries';
 import { getBackendErrorMessage } from '../utils/backendErrors';
 import { toast } from 'sonner';
@@ -62,8 +63,8 @@ export default function EditPostModal({ post, open, onOpenChange }: EditPostModa
     }
 
     try {
-      let imageBlob: ExternalBlob | undefined = undefined;
-      let videoBlob: ExternalBlob | undefined = undefined;
+      let imageBlob: ExternalBlob | null = null;
+      let videoBlob: ExternalBlob | null = null;
 
       if (mediaFile && mediaType === 'image') {
         const bytes = new Uint8Array(await mediaFile.arrayBuffer());
@@ -78,7 +79,7 @@ export default function EditPostModal({ post, open, onOpenChange }: EditPostModa
       }
 
       const content = {
-        text: trimmed || undefined,
+        text: trimmed || null,
         image: imageBlob,
         video: videoBlob,
       };
@@ -92,12 +93,14 @@ export default function EditPostModal({ post, open, onOpenChange }: EditPostModa
   };
 
   // Show existing media from post if no new file selected
-  const existingImageUrl = !mediaFile && post?.content.image
-    ? post.content.image.getDirectURL()
-    : null;
-  const existingVideoUrl = !mediaFile && post?.content.video
-    ? post.content.video.getDirectURL()
-    : null;
+  const existingImageUrl =
+    !mediaFile && post?.content.image
+      ? (post.content.image as any).getDirectURL?.()
+      : null;
+  const existingVideoUrl =
+    !mediaFile && post?.content.video
+      ? (post.content.video as any).getDirectURL?.()
+      : null;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
@@ -199,9 +202,13 @@ export default function EditPostModal({ post, open, onOpenChange }: EditPostModa
               className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50"
             >
               {updatePost.isPending ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                </>
               ) : (
-                <><Save className="w-4 h-4" /> Save</>
+                <>
+                  <Save className="w-4 h-4" /> Save
+                </>
               )}
             </button>
           </div>

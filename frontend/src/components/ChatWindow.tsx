@@ -2,20 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Principal } from '@dfinity/principal';
 import { useGetMessages, useSendMessage, useGetUserProfile } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
+import type { Message } from '../types';
 import { Send, Loader2 } from 'lucide-react';
 
 interface ChatWindowProps {
   otherUser: Principal;
 }
 
-function formatTimestamp(ts: bigint): string {
-  const ms = Number(ts) / 1_000_000;
-  return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
 export default function ChatWindow({ otherUser }: ChatWindowProps) {
   const { identity } = useInternetIdentity();
-  const currentUserPrincipal = identity?.getPrincipal();
   const otherUserId = otherUser.toString();
 
   const { data: messages = [], isLoading } = useGetMessages(otherUserId);
@@ -33,7 +28,7 @@ export default function ChatWindow({ otherUser }: ChatWindowProps) {
     const trimmed = newMessage.trim();
     if (!trimmed) return;
     try {
-      await sendMessage.mutateAsync({ receiverId: otherUserId, content: trimmed });
+      await sendMessage.mutateAsync({ receiver: otherUserId, content: trimmed });
       setNewMessage('');
     } catch {
       // Messaging not yet available
@@ -58,9 +53,7 @@ export default function ChatWindow({ otherUser }: ChatWindowProps) {
         </div>
         <div>
           <p className="font-semibold text-foreground text-sm">{displayName}</p>
-          <p className="text-xs text-muted-foreground">
-            {otherUserId.slice(0, 12)}...
-          </p>
+          <p className="text-xs text-muted-foreground">{otherUserId.slice(0, 12)}...</p>
         </div>
       </div>
 
@@ -76,7 +69,7 @@ export default function ChatWindow({ otherUser }: ChatWindowProps) {
             <p className="mt-1 text-xs">Messaging feature coming soon!</p>
           </div>
         ) : (
-          messages.map((_message: never, idx: number) => (
+          messages.map((message: Message, idx: number) => (
             <div key={idx} className="text-sm text-muted-foreground">
               Message {idx + 1}
             </div>

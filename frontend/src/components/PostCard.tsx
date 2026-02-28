@@ -1,245 +1,283 @@
 import React, { useState } from 'react';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Edit, Flag, ChevronUp } from 'lucide-react';
-import { Post } from '../backend';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useLikePost, useUnlikePost, useHasLikedPost, useDeletePost } from '../hooks/useQueries';
-import { getBackendErrorMessage } from '../utils/backendErrors';
-import { toast } from 'sonner';
+import { useLikePost, useUnlikePost, useDeletePost } from '../hooks/useQueries';
+import type { Post } from '../types';
 import CommentSection from './CommentSection';
+import EditPostModal from './EditPostModal';
+import ReportModal from './ReportModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import {
+  Heart,
+  MessageCircle,
+  Share2,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Flag,
+  Loader2,
+} from 'lucide-react';
 
 interface PostCardProps {
   post: Post;
-  onEdit?: (post: Post) => void;
-  onReport?: (post: Post) => void;
+  showComments?: boolean;
 }
 
-function formatTime(timestamp: bigint): string {
-  const ms = Number(timestamp) / 1_000_000;
-  const diff = Date.now() - ms;
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+function timeAgo(timestamp: bigint | number): string {
+  const now = Date.now();
+  const postTime = Number(timestamp) / 1_000_000;
+  const diff = Math.floor((now - postTime) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
 }
 
-function shortenPrincipal(p: string): string {
-  if (p.length <= 12) return p;
-  return p.slice(0, 6) + '...' + p.slice(-4);
+function getInitials(principal: string): string {
+  return principal.slice(0, 2).toUpperCase();
 }
 
-export default function PostCard({ post, onEdit, onReport }: PostCardProps) {
+export default function PostCard({ post, showComments = false }: PostCardProps) {
   const { identity } = useInternetIdentity();
-  const [showMenu, setShowMenu] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [optimisticLiked, setOptimisticLiked] = useState<boolean | null>(null);
-  const [optimisticCount, setOptimisticCount] = useState<number | null>(null);
-
-  const { data: hasLiked = false } = useHasLikedPost(post.id);
   const likePost = useLikePost();
   const unlikePost = useUnlikePost();
   const deletePost = useDeletePost();
 
-  const isLiked = optimisticLiked !== null ? optimisticLiked : hasLiked;
-  const likeCount = optimisticCount !== null ? optimisticCount : Number(post.likeCount);
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(Number(post.likeCount));
+  const [commentsOpen, setCommentsOpen] = useState(showComments);
+  const [editOpen, setEditOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const isAuthor = identity && post.author.toString() === identity.getPrincipal().toString();
+  const isAuthenticated = !!identity;
+  const currentPrincipal = identity?.getPrincipal().toString();
+  const isOwner =
+    currentPrincipal && post.author.toString() === currentPrincipal;
 
   const handleLike = async () => {
-    if (!identity) {
-      toast.error('Please log in to like posts');
-      return;
-    }
-    const prevLiked = isLiked;
-    const prevCount = likeCount;
-    // Optimistic update
-    setOptimisticLiked(!prevLiked);
-    setOptimisticCount(prevLiked ? prevCount - 1 : prevCount + 1);
-
-    try {
-      if (prevLiked) {
+    if (!isAuthenticated) return;
+    if (liked) {
+      setLiked(false);
+      setLikeCount((c) => c - 1);
+      try {
         await unlikePost.mutateAsync(post.id);
-      } else {
-        await likePost.mutateAsync(post.id);
+      } catch {
+        setLiked(true);
+        setLikeCount((c) => c + 1);
       }
-      // Reset optimistic after success (real data will come from query invalidation)
-      setOptimisticLiked(null);
-      setOptimisticCount(null);
-    } catch (err) {
-      // Revert optimistic update
-      setOptimisticLiked(prevLiked);
-      setOptimisticCount(prevCount);
-      toast.error(getBackendErrorMessage(err));
+    } else {
+      setLiked(true);
+      setLikeCount((c) => c + 1);
+      try {
+        await likePost.mutateAsync(post.id);
+      } catch {
+        setLiked(false);
+        setLikeCount((c) => c - 1);
+      }
     }
   };
 
   const handleDelete = async () => {
-    setShowMenu(false);
     try {
       await deletePost.mutateAsync(post.id);
-      toast.success('Post deleted');
-    } catch (err) {
-      toast.error(getBackendErrorMessage(err));
+    } catch {
+      // error handled by mutation
     }
+    setDeleteDialogOpen(false);
   };
 
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({ title: 'CivWorld Post', text: post.content.text || '' }).catch(() => {});
+      navigator.share({ title: 'CivWorld Post', url: window.location.href });
     } else {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        toast.success('Link copied to clipboard');
-      });
+      navigator.clipboard.writeText(window.location.href);
     }
   };
 
-  const imageUrl = post.content.image ? post.content.image.getDirectURL() : null;
-  const videoUrl = post.content.video ? post.content.video.getDirectURL() : null;
+  const imageUrl = post.content.image
+    ? (() => {
+        try {
+          return (post.content.image as any).getDirectURL?.() ?? null;
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+
+  const videoUrl = post.content.video
+    ? (() => {
+        try {
+          return (post.content.video as any).getDirectURL?.() ?? null;
+        } catch {
+          return null;
+        }
+      })()
+    : null;
 
   return (
-    <div className="bg-card rounded-2xl shadow-sm border border-border mb-3 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
-            {post.author.toString().slice(0, 2).toUpperCase()}
+    <>
+      <article className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden mb-3">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
+              {getInitials(post.author.toString())}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground leading-tight">
+                {post.author.toString().slice(0, 12)}...
+              </p>
+              <p className="text-xs text-muted-foreground">{timeAgo(post.timestamp)}</p>
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-foreground text-sm">
-              {shortenPrincipal(post.author.toString())}
-            </p>
-            <p className="text-xs text-muted-foreground">{formatTime(post.timestamp)}</p>
-          </div>
-        </div>
-        <div className="relative">
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="p-2 rounded-full hover:bg-muted transition-colors"
-            aria-label="Post options"
-          >
-            <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
-          </button>
-          {showMenu && (
-            <div className="absolute right-0 top-10 bg-card border border-border rounded-xl shadow-lg z-50 min-w-[140px] overflow-hidden">
-              {isAuthor && (
+
+          {/* Three-dot menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              {isOwner ? (
                 <>
-                  {onEdit && (
-                    <button
-                      onClick={() => { setShowMenu(false); onEdit(post); }}
-                      className="flex items-center gap-2 w-full px-4 py-3 text-sm hover:bg-muted transition-colors"
-                    >
-                      <Edit className="w-4 h-4" /> Edit
-                    </button>
-                  )}
-                  <button
-                    onClick={handleDelete}
-                    disabled={deletePost.isPending}
-                    className="flex items-center gap-2 w-full px-4 py-3 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                  <DropdownMenuItem onClick={() => setEditOpen(true)} className="gap-2">
+                    <Pencil className="w-4 h-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setDeleteDialogOpen(true)}
+                    className="gap-2 text-destructive focus:text-destructive"
                   >
                     <Trash2 className="w-4 h-4" />
-                    {deletePost.isPending ? 'Deleting...' : 'Delete'}
-                  </button>
+                    Delete
+                  </DropdownMenuItem>
                 </>
+              ) : (
+                <DropdownMenuItem onClick={() => setReportOpen(true)} className="gap-2">
+                  <Flag className="w-4 h-4" />
+                  Report
+                </DropdownMenuItem>
               )}
-              {onReport && (
-                <button
-                  onClick={() => { setShowMenu(false); onReport(post); }}
-                  className="flex items-center gap-2 w-full px-4 py-3 text-sm hover:bg-muted transition-colors"
-                >
-                  <Flag className="w-4 h-4" /> Report
-                </button>
-              )}
-            </div>
-          )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      </div>
 
-      {/* Content */}
-      {post.content.text && (
-        <div className="px-4 pb-3">
-          <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap">
-            {post.content.text}
-          </p>
-        </div>
-      )}
+        {/* Content */}
+        {post.content.text && (
+          <div className="px-4 pb-3">
+            <p className="text-sm text-foreground leading-relaxed">{post.content.text}</p>
+          </div>
+        )}
 
-      {/* Media */}
-      {imageUrl && (
-        <div className="w-full">
-          <img
-            src={imageUrl}
-            alt="Post media"
-            className="w-full max-h-80 object-cover"
-          />
-        </div>
-      )}
-      {videoUrl && (
-        <div className="w-full">
-          <video
-            src={videoUrl}
-            controls
-            className="w-full max-h-80 object-cover"
-          />
-        </div>
-      )}
+        {imageUrl && (
+          <div className="w-full">
+            <img src={imageUrl} alt="Post media" className="w-full max-h-80 object-cover" />
+          </div>
+        )}
 
-      {/* Actions */}
-      <div className="flex items-center gap-1 px-4 py-3 border-t border-border/50">
-        <button
-          onClick={handleLike}
-          disabled={likePost.isPending || unlikePost.isPending}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-            isLiked
-              ? 'text-red-500 bg-red-50 dark:bg-red-950/30'
-              : 'text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30'
-          } disabled:opacity-60`}
-          aria-label={isLiked ? 'Unlike post' : 'Like post'}
-        >
-          <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
-          <span>{likeCount}</span>
-        </button>
+        {videoUrl && (
+          <div className="w-full">
+            <video src={videoUrl} controls className="w-full max-h-80 object-cover" />
+          </div>
+        )}
 
-        <button
-          onClick={() => setShowComments(!showComments)}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-            showComments
-              ? 'text-primary bg-primary/10'
-              : 'text-muted-foreground hover:text-primary hover:bg-primary/10'
-          }`}
-          aria-label={showComments ? 'Hide comments' : 'Show comments'}
-        >
-          {showComments ? (
-            <ChevronUp className="w-4 h-4" />
-          ) : (
+        {/* Actions */}
+        <div className="flex items-center gap-1 px-3 py-2 border-t border-border/50">
+          <button
+            onClick={handleLike}
+            disabled={!isAuthenticated}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all min-h-[44px] ${
+              liked
+                ? 'text-red-500 bg-red-50 dark:bg-red-950/30'
+                : 'text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30'
+            } disabled:opacity-50`}
+          >
+            <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} />
+            <span>{likeCount}</span>
+          </button>
+
+          <button
+            onClick={() => setCommentsOpen(!commentsOpen)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all min-h-[44px]"
+          >
             <MessageCircle className="w-4 h-4" />
-          )}
-          <span>{showComments ? 'Hide' : 'Comment'}</span>
-        </button>
+            <span>Comment</span>
+          </button>
 
-        <button
-          onClick={handleShare}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
-          aria-label="Share post"
-        >
-          <Share2 className="w-4 h-4" />
-          <span>Share</span>
-        </button>
-      </div>
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all min-h-[44px] ml-auto"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+        </div>
 
-      {/* Comment Section - only rendered when toggled open */}
-      {showComments && (
-        <CommentSection postId={post.id.toString()} />
-      )}
+        {/* Comments */}
+        {commentsOpen && (
+          <div className="border-t border-border/50">
+            <CommentSection postId={String(post.id)} />
+          </div>
+        )}
+      </article>
 
-      {/* Click outside to close menu */}
-      {showMenu && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setShowMenu(false)}
+      {/* Edit Modal */}
+      {editOpen && (
+        <EditPostModal
+          post={post}
+          open={editOpen}
+          onOpenChange={(v) => setEditOpen(v)}
         />
       )}
-    </div>
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={reportOpen}
+        onClose={() => setReportOpen(false)}
+        targetType="post"
+        targetId={Number(post.id)}
+      />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletePost.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

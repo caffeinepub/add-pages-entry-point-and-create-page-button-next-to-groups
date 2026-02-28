@@ -2,28 +2,8 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-react-query-hooks-in-frontend-src-hooks-usequeries-ts-for-the-comment-system-usegetcommentsbypost-postid-fetches-comments-for-a-post-usemutationaddcomment-calls-addcomment-usemutationeditcomment-calls-editcomment-usemutationdeletecomment-calls-deletecomment-usemutationlikecomment-calls-likecomment-all-mutation-hooks-must-invalidate-the-usegetcommentsbypost-query-on-success-so-comments-refresh-instantly-without-a-page-reload",
-      "featureTitle": "Add React Query hooks in frontend/src/hooks/useQueries.ts for the comment system: useGetCommentsByPost(postId) fetches comments for a post; useMutationAddComment() calls addComment; useMutationEditComment() calls editComment; useMutationDeleteComment() calls deleteComment; useMutationLikeComment() calls likeComment. All mutation hooks must invalidate the useGetCommentsByPost query on success so comments refresh instantly without a page reload.",
-      "files": [
-        "frontend/src/hooks/useQueries.ts"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-create-a-new-frontend-component-frontend-src-components-commentsection-tsx-that-renders-the-full-comment-ui-for-a-given-postid-the-component-must-display-a-list-of-comments-showing-the-author-s-profile-image-or-a-default-avatar-username-relative-timestamp-e-g-2m-ago-and-comment-text-support-nested-replies-rendered-indented-under-their-parent-comment-show-an-input-field-to-add-a-new-top-level-comment-with-a-loading-spinner-while-posting-show-success-and-error-toast-messages-after-submission-attempts-display-a-three-dot-context-menu-on-each-comment-with-edit-and-delete-options-visible-only-to-the-comment-s-author-and-a-report-option-visible-to-other-authenticated-users-support-an-inline-reply-input-triggered-per-comment-support-inline-edit-mode-replacing-comment-text-with-an-editable-input-show-like-button-with-count-on-each-comment-use-the-react-query-hooks-from-req-3-for-all-data-operations",
-      "featureTitle": "Create a new frontend component frontend/src/components/CommentSection.tsx that renders the full comment UI for a given postId. The component must: display a list of comments showing the author's profile image (or a default avatar), username, relative timestamp (e.g., '2m ago'), and comment text; support nested replies rendered indented under their parent comment; show an input field to add a new top-level comment with a loading spinner while posting; show success and error toast messages after submission attempts; display a three-dot (⋮) context menu on each comment with 'Edit' and 'Delete' options visible only to the comment's author, and a 'Report' option visible to other authenticated users; support an inline reply input triggered per-comment; support inline edit mode replacing comment text with an editable input; show like button with count on each comment; use the React Query hooks from REQ-3 for all data operations.",
+      "featureId": "feature-fix-the-comment-action-dropdown-menu-containing-edit-and-delete-options-in-commentsection-tsx-so-it-is-always-fully-visible-regardless-of-where-the-comment-appears-on-the-screen-the-menu-is-currently-being-clipped-or-cut-off-due-to-container-overflow-constraints-or-incorrect-positioning-use-a-portal-based-rendering-approach-or-switch-to-a-fixed-absolute-positioning-strategy-that-accounts-for-viewport-boundaries-e-g-flip-the-dropdown-upward-when-near-the-bottom-of-the-screen-and-ensure-no-ancestor-container-with-overflow-hidden-clips-it",
+      "featureTitle": "Fix the comment action dropdown menu (containing Edit and Delete options) in CommentSection.tsx so it is always fully visible regardless of where the comment appears on the screen. The menu is currently being clipped or cut off due to container overflow constraints or incorrect positioning. Use a portal-based rendering approach or switch to a fixed/absolute positioning strategy that accounts for viewport boundaries (e.g., flip the dropdown upward when near the bottom of the screen, and ensure no ancestor container with overflow:hidden clips it).",
       "files": [
         "frontend/src/components/CommentSection.tsx"
       ],
@@ -37,27 +17,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-4"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-integrate-the-commentsection-component-into-the-postcard-component-frontend-src-components-postcard-tsx-add-a-collapsible-comment-section-below-each-post-that-is-shown-hidden-when-the-user-clicks-a-comment-button-or-icon-pass-the-post-s-id-as-the-postid-prop-to-commentsection",
-      "featureTitle": "Integrate the CommentSection component into the PostCard component (frontend/src/components/PostCard.tsx). Add a collapsible comment section below each post that is shown/hidden when the user clicks a 'Comment' button or icon. Pass the post's id as the postId prop to CommentSection.",
-      "files": [
-        "frontend/src/components/PostCard.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-5"
+        "REQ-1"
       ],
       "confidence": "high"
     }

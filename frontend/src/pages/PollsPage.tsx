@@ -1,161 +1,77 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { Plus, Loader2, CheckCircle2, BarChart3 } from 'lucide-react';
-import { useGetPolls, useVotePoll, useHasVotedOnPoll } from '../hooks/useQueries';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { Poll } from '../backend';
-import { getBackendErrorMessage } from '../utils/backendErrors';
-import { toast } from 'sonner';
-
-function PollCard({ poll }: { poll: Poll }) {
-  const { identity } = useInternetIdentity();
-  const { data: hasVoted = false, isLoading: checkingVote } = useHasVotedOnPoll(poll.id);
-  const votePoll = useVotePoll();
-  const [votingIndex, setVotingIndex] = useState<number | null>(null);
-
-  const totalVotes = poll.votes.reduce((sum, v) => sum + Number(v), 0);
-
-  const getPercentage = (votes: bigint) => {
-    if (totalVotes === 0) return 0;
-    return Math.round((Number(votes) / totalVotes) * 100);
-  };
-
-  const handleVote = async (optionIndex: number) => {
-    if (!identity) {
-      toast.error('Please log in to vote');
-      return;
-    }
-    if (hasVoted) {
-      toast.info('You have already voted on this poll');
-      return;
-    }
-    setVotingIndex(optionIndex);
-    try {
-      await votePoll.mutateAsync({ pollId: poll.id, optionIndex: BigInt(optionIndex) });
-      toast.success('Vote recorded!');
-    } catch (err) {
-      toast.error(getBackendErrorMessage(err));
-    } finally {
-      setVotingIndex(null);
-    }
-  };
-
-  return (
-    <div className="bg-card rounded-2xl border border-border p-4 mb-3 shadow-sm">
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="text-sm font-semibold text-foreground flex-1 pr-2 leading-snug">
-          {poll.question}
-        </h3>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
-          <BarChart3 className="w-3.5 h-3.5" />
-          <span>{totalVotes} votes</span>
-        </div>
-      </div>
-
-      {checkingVote ? (
-        <div className="flex justify-center py-4">
-          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {poll.options.map((option, i) => {
-            const pct = getPercentage(poll.votes[i]);
-            const isVoting = votingIndex === i && votePoll.isPending;
-
-            return (
-              <button
-                key={i}
-                onClick={() => handleVote(i)}
-                disabled={hasVoted || votePoll.isPending || !identity}
-                className={`w-full text-left rounded-xl overflow-hidden border transition-all ${
-                  hasVoted
-                    ? 'border-border cursor-default'
-                    : 'border-primary/30 hover:border-primary cursor-pointer hover:shadow-sm'
-                } disabled:cursor-not-allowed`}
-              >
-                <div className="relative px-3 py-2.5">
-                  {/* Progress bar background */}
-                  {hasVoted && (
-                    <div
-                      className="absolute inset-0 bg-primary/10 rounded-xl transition-all"
-                      style={{ width: `${pct}%` }}
-                    />
-                  )}
-                  <div className="relative flex items-center justify-between">
-                    <span className="text-sm text-foreground font-medium">{option}</span>
-                    <div className="flex items-center gap-1.5">
-                      {isVoting && <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />}
-                      {hasVoted && (
-                        <span className="text-xs font-semibold text-primary">{pct}%</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {hasVoted && (
-        <div className="flex items-center gap-1.5 mt-3 text-xs text-primary font-medium">
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          You voted on this poll
-        </div>
-      )}
-
-      {!identity && (
-        <p className="text-xs text-muted-foreground mt-2">Log in to vote</p>
-      )}
-    </div>
-  );
-}
+import { useGetPolls } from '../hooks/useQueries';
+import PollCard from '../components/PollCard';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Plus, BarChart2 } from 'lucide-react';
 
 export default function PollsPage() {
   const navigate = useNavigate();
-  const { data: polls = [], isLoading } = useGetPolls();
-  const { identity } = useInternetIdentity();
-
-  const publicPolls = polls.filter((p) => p.isPublic);
+  const { data: polls, isLoading, error } = useGetPolls();
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="max-w-2xl mx-auto px-4 py-4">
       {/* Header */}
-      <div className="sticky top-14 z-10 bg-background/95 backdrop-blur border-b border-border px-4 py-3 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-foreground">Polls</h1>
-        {identity && (
-          <button
-            onClick={() => navigate({ to: '/create-poll' })}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            Create
-          </button>
-        )}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <BarChart2 className="w-5 h-5 text-primary" />
+          <h1 className="text-lg font-bold text-foreground">Polls</h1>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => navigate({ to: '/create-poll' })}
+          className="rounded-full gap-1 h-8 text-xs"
+        >
+          <Plus className="w-3 h-3" />
+          Create Poll
+        </Button>
       </div>
 
-      <div className="px-4 py-4 max-w-lg mx-auto">
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        ) : publicPolls.length === 0 ? (
-          <div className="text-center py-12">
-            <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground font-medium">No polls yet</p>
-            {identity && (
-              <button
-                onClick={() => navigate({ to: '/create-poll' })}
-                className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all"
-              >
-                Create First Poll
-              </button>
-            )}
-          </div>
-        ) : (
-          publicPolls.map((poll) => <PollCard key={poll.id.toString()} poll={poll} />)
-        )}
-      </div>
+      {/* Loading */}
+      {isLoading && (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-card rounded-2xl border border-border p-4">
+              <Skeleton className="h-4 w-3/4 mb-3" />
+              <Skeleton className="h-10 w-full mb-2" />
+              <Skeleton className="h-10 w-full mb-2" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="text-center py-8">
+          <p className="text-destructive text-sm">Failed to load polls. Please try again.</p>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!isLoading && !error && (!polls || polls.length === 0) && (
+        <div className="text-center py-12">
+          <BarChart2 className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-foreground mb-1">No polls yet</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Be the first to create a civic poll!
+          </p>
+          <Button onClick={() => navigate({ to: '/create-poll' })} className="rounded-full">
+            <Plus className="w-4 h-4 mr-2" />
+            Create First Poll
+          </Button>
+        </div>
+      )}
+
+      {/* Polls list */}
+      {!isLoading && polls && polls.length > 0 && (
+        <div className="space-y-3">
+          {polls.map((poll) => (
+            <PollCard key={Number(poll.id)} poll={poll} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

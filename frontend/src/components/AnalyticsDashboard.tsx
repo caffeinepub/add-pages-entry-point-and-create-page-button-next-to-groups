@@ -1,9 +1,17 @@
 import React from 'react';
 import { useGetAnalytics, TrendingHashtagItem, AnalyticsResult } from '../hooks/useQueries';
-import { Post, UserProfile } from '../backend';
+import type { Post, UserProfile } from '../types';
 import { Loader2, TrendingUp, Heart, MessageCircle, Users, BarChart2 } from 'lucide-react';
 
-function StatCard({ label, value, icon: Icon }: { label: string; value: number | string; icon: React.ElementType }) {
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: number | string;
+  icon: React.ElementType;
+}) {
   return (
     <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
       <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
@@ -55,10 +63,7 @@ export default function AnalyticsDashboard() {
           </div>
           <div className="space-y-2">
             {analytics.trendingHashtags.map((hashtag: TrendingHashtagItem) => (
-              <div
-                key={hashtag.word}
-                className="flex items-center justify-between py-1"
-              >
+              <div key={hashtag.word} className="flex items-center justify-between py-1">
                 <span className="text-sm text-primary font-medium">{hashtag.word}</span>
                 <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                   {Number(hashtag.count)}
@@ -75,7 +80,7 @@ export default function AnalyticsDashboard() {
           <h3 className="font-semibold text-foreground text-sm mb-3">Top Posts</h3>
           <div className="space-y-3">
             {analytics.topPosts.map((post: Post) => (
-              <div key={post.id.toString()} className="flex items-start gap-2">
+              <div key={String(post.id)} className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-foreground truncate">
                     {post.content.text || '(media post)'}
@@ -101,7 +106,9 @@ export default function AnalyticsDashboard() {
                   {contributor.name.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-foreground truncate">{contributor.name}</p>
+                  <p className="font-semibold text-sm text-foreground truncate">
+                    {contributor.name}
+                  </p>
                   <p className="text-xs text-muted-foreground truncate">{contributor.bio}</p>
                 </div>
                 <span className="text-xs text-muted-foreground flex-shrink-0">
