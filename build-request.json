@@ -1,40 +1,153 @@
 {
   "kind": "build_request",
-  "title": "Fix comment Edit/Delete dropdown menu clipping/overflow issue",
-  "priority": "normal",
+  "title": "Fix actor bindings and repair creation flows for posts, polls, groups, and pages",
+  "projectName": "CivWorld",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the comment action dropdown menu (containing Edit and Delete options) in CommentSection.tsx so it is always fully visible regardless of where the comment appears on the screen. The menu is currently being clipped or cut off due to container overflow constraints or incorrect positioning. Use a portal-based rendering approach or switch to a fixed/absolute positioning strategy that accounts for viewport boundaries (e.g., flip the dropdown upward when near the bottom of the screen, and ensure no ancestor container with overflow:hidden clips it).",
+      "text": "Audit and fix the backend actor initialization in useActor.ts-dependent hooks inside useQueries.ts to ensure the actor is always properly instantiated before any mutation or query is called. Guard all backend calls so they wait for a valid actor instance and do not proceed with undefined/null actor.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-4",
-          "msg-5"
+          "msg-6"
         ],
         "quotes": [
-          "Comment Edit and Delete options are not visible. It is visible only up to some line",
-          "This is a UI issue, not backend issue"
+          "unable to create post polls unable to creare groups pages , actor not functioon duisplays"
         ]
       },
       "acceptanceCriteria": [
-        "The Edit and Delete options in the comment dropdown menu are fully visible for every comment in the list, including those near the bottom or edges of the screen.",
-        "The dropdown does not get clipped by any parent container's overflow settings.",
-        "The dropdown repositions itself (flips upward or adjusts) when there is insufficient space below the trigger button.",
-        "The fix applies consistently across all comment nesting levels (top-level comments and replies).",
-        "No regression in existing comment actions (like, report, reply) after the fix."
+        "No 'actor not found' or actor-related error messages appear anywhere in the UI",
+        "All mutations (createPost, createPoll, createGroup, createPage) correctly await a valid actor before executing",
+        "If the actor is not yet available, mutations show a loading state rather than an error"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Fix the post creation flow so that submitting a new post via CreatePostCard, QuickPostBar, CreateGroupPostModal, and SharePage successfully calls the backend createPost method and the new post appears in the feed without errors.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "unable to create post"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Authenticated users can create a text-only post and see it appear in the home feed",
+        "Authenticated users can create a post with an image or video attachment",
+        "No actor or canister errors are thrown during post creation",
+        "After successful creation, the post feed is invalidated and refreshed"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Fix the poll creation flow so that submitting a new poll via CreatePollPage and any poll creation modal correctly calls the backend createPoll method and the new poll appears in PollsPage without errors.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "polls unable to creare"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Authenticated users can create a poll with a question and at least two options",
+        "The created poll appears in PollsPage after submission",
+        "No actor or canister errors are thrown during poll creation",
+        "Poll voting works after creation"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Fix the group creation flow so that submitting a new group via CreateGroupPage and CreateGroupModal correctly calls the backend createGroup method and the new group appears in CommunitiesPage/GroupsPage without errors.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "unable to creare groups"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Authenticated users can create a group with a name and description",
+        "The newly created group is visible in GroupsPage and CommunitiesPage",
+        "No actor or canister errors are thrown during group creation",
+        "After creation, the groups query cache is invalidated and refreshed"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Fix the page creation flow so that submitting a new community page via CreatePagePage correctly calls the backend createPage method and the new page appears in PagesPage/CommunitiesPage without errors.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "unable to creare ... pages"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Authenticated users can create a community page with a name, category, and description",
+        "The newly created page is visible in PagesPage and CommunitiesPage",
+        "No actor or canister errors are thrown during page creation",
+        "After creation, the pages query cache is invalidated and refreshed"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Remove or suppress all raw actor error messages currently displayed in the UI. Replace any raw canister/actor error display with user-friendly error messages using the existing backendErrors.ts utilities. Errors should be shown as dismissible toast notifications or inline form errors, not as raw technical strings.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "actor not functioon duisplays"
+        ]
+      },
+      "acceptanceCriteria": [
+        "No raw actor, canister, or principal error strings are visible to end users",
+        "All backend errors are translated through backendErrors.ts to user-friendly messages",
+        "Error states are shown as dismissible notifications or inline form messages"
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "Ensure the Motoko backend actor exposes all required update methods for createPost, createPoll, createGroup, and createPage with correct parameter types matching the frontend Candid interface. Verify that the actor interface in main.mo is consistent with what the frontend expects in useQueries.ts.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-4",
+          "msg-6"
+        ],
+        "quotes": [
+          "actor not functioon duisplays",
+          "Fix actor binding errors causing posts, polls, groups, and pages creation to fail"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Backend actor exposes createPost, createPoll, createGroup, and createPage as callable update methods",
+        "Method signatures match the Candid types expected by the frontend hooks",
+        "Backend compiles without errors after changes"
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
-    "Do not change backend logic — this is a frontend-only fix.",
-    "Preserve all existing comment actions (like, reply, report, edit, delete)."
+    "Do not modify files listed in frontend.immutablePaths (useInternetIdentity.ts, useActor.ts, main.tsx, ui components)",
+    "Preserve all existing stable state in the backend — do not reset or wipe stored data",
+    "Use backendErrors.ts for all user-facing error message formatting"
   ],
   "nonGoals": [
-    "Adding new comment features or changing comment data models.",
-    "Changing the visual design or layout of the comment section beyond fixing the dropdown visibility.",
-    "Backend changes of any kind."
+    "Adding new features beyond fixing the broken creation flows",
+    "Redesigning any UI components",
+    "Changing authentication flow or Internet Identity integration",
+    "Implementing real-time updates or WebSockets"
   ],
   "imageRequirements": {
     "required": [],

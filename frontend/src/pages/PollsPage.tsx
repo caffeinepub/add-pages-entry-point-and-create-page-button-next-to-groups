@@ -4,7 +4,7 @@ import { useGetPolls } from '../hooks/useQueries';
 import PollCard from '../components/PollCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, BarChart2 } from 'lucide-react';
+import { Plus, BarChart2, TrendingUp } from 'lucide-react';
 
 export default function PollsPage() {
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ export default function PollsPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <BarChart2 className="w-5 h-5 text-primary" />
           <h1 className="text-lg font-bold text-foreground">Polls</h1>
@@ -27,6 +27,23 @@ export default function PollsPage() {
           Create Poll
         </Button>
       </div>
+
+      {/* Sample Results Banner */}
+      <button
+        onClick={() => navigate({ to: '/poll-results' })}
+        className="w-full mb-4 flex items-center gap-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl px-4 py-3 shadow-soft hover:from-blue-700 hover:to-blue-800 active:scale-[0.98] transition-all duration-150"
+      >
+        <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+          <TrendingUp className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-sm font-semibold">View Detailed Poll Results</p>
+          <p className="text-xs text-blue-100 mt-0.5">
+            Region-wise breakdown · Animated results · Live analytics
+          </p>
+        </div>
+        <span className="text-blue-200 text-lg">›</span>
+      </button>
 
       {/* Loading */}
       {isLoading && (

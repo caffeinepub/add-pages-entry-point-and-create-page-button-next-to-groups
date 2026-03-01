@@ -1,24 +1,83 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "App with comment section, poll results, reporting menu, UI improvements, and admin controls. Fixing comment Edit/Delete menu visibility issue (UI overflow/clipping bug).",
-  "architectural_notes": [],
+  "summary": "Social platform with posts, polls, groups, and pages features. Currently fixing actor binding errors and broken creation flows for posts, polls, groups, and pages.",
+  "architectural_notes": [
+    "Backend uses canister actors (IC/Internet Computer); actor bindings must be properly wired for posts, polls, groups, and pages"
+  ],
   "known_issues": [
-    "Comment Edit/Delete action menu is clipped/not fully visible due to overflow or positioning issue in the comment section UI"
+    "Unable to create posts, polls, groups, or pages — likely due to broken canister actor bindings",
+    "Actor not found errors displaying in the UI"
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-fix-the-comment-action-dropdown-menu-containing-edit-and-delete-options-in-commentsection-tsx-so-it-is-always-fully-visible-regardless-of-where-the-comment-appears-on-the-screen-the-menu-is-currently-being-clipped-or-cut-off-due-to-container-overflow-constraints-or-incorrect-positioning-use-a-portal-based-rendering-approach-or-switch-to-a-fixed-absolute-positioning-strategy-that-accounts-for-viewport-boundaries-e-g-flip-the-dropdown-upward-when-near-the-bottom-of-the-screen-and-ensure-no-ancestor-container-with-overflow-hidden-clips-it",
-      "title": "Fix the comment action dropdown menu (containing Edit and Delete options) in CommentSection.tsx so it is always fully visible regardless of where the comment appears on the screen. The menu is currently being clipped or cut off due to container overflow constraints or incorrect positioning. Use a portal-based rendering approach or switch to a fixed/absolute positioning strategy that accounts for viewport boundaries (e.g., flip the dropdown upward when near the bottom of the screen, and ensure no ancestor container with overflow:hidden clips it).",
+      "id": "feature-audit-and-fix-the-backend-actor-initialization-in-useactor-ts-dependent-hooks-inside-usequeries-ts-to-ensure-the-actor-is-always-properly-instantiated-before-any-mutation-or-query-is-called-guard-all-backend-calls-so-they-wait-for-a-valid-actor-instance-and-do-not-proceed-with-undefined-null-actor",
+      "title": "Audit and fix the backend actor initialization in useActor.ts-dependent hooks inside useQueries.ts to ensure the actor is always properly instantiated before any mutation or query is called. Guard all backend calls so they wait for a valid actor instance and do not proceed with undefined/null actor.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-fix-the-post-creation-flow-so-that-submitting-a-new-post-via-createpostcard-quickpostbar-creategrouppostmodal-and-sharepage-successfully-calls-the-backend-createpost-method-and-the-new-post-appears-in-the-feed-without-errors",
+      "title": "Fix the post creation flow so that submitting a new post via CreatePostCard, QuickPostBar, CreateGroupPostModal, and SharePage successfully calls the backend createPost method and the new post appears in the feed without errors.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-poll-creation-flow-so-that-submitting-a-new-poll-via-createpollpage-and-any-poll-creation-modal-correctly-calls-the-backend-createpoll-method-and-the-new-poll-appears-in-pollspage-without-errors",
+      "title": "Fix the poll creation flow so that submitting a new poll via CreatePollPage and any poll creation modal correctly calls the backend createPoll method and the new poll appears in PollsPage without errors.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-group-creation-flow-so-that-submitting-a-new-group-via-creategrouppage-and-creategroupmodal-correctly-calls-the-backend-creategroup-method-and-the-new-group-appears-in-communitiespage-groupspage-without-errors",
+      "title": "Fix the group creation flow so that submitting a new group via CreateGroupPage and CreateGroupModal correctly calls the backend createGroup method and the new group appears in CommunitiesPage/GroupsPage without errors.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-page-creation-flow-so-that-submitting-a-new-community-page-via-createpagepage-correctly-calls-the-backend-createpage-method-and-the-new-page-appears-in-pagespage-communitiespage-without-errors",
+      "title": "Fix the page creation flow so that submitting a new community page via CreatePagePage correctly calls the backend createPage method and the new page appears in PagesPage/CommunitiesPage without errors.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-or-suppress-all-raw-actor-error-messages-currently-displayed-in-the-ui-replace-any-raw-canister-actor-error-display-with-user-friendly-error-messages-using-the-existing-backenderrors-ts-utilities-errors-should-be-shown-as-dismissible-toast-notifications-or-inline-form-errors-not-as-raw-technical-strings",
+      "title": "Remove or suppress all raw actor error messages currently displayed in the UI. Replace any raw canister/actor error display with user-friendly error messages using the existing backendErrors.ts utilities. Errors should be shown as dismissible toast notifications or inline form errors, not as raw technical strings.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Fix comment Edit/Delete dropdown menu clipping/overflow issue",
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Fix actor binding errors causing posts, polls, groups, and pages creation to fail, and remove actor error displays in UI",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Ensure the Motoko backend actor exposes all required update methods for createPost, createPoll, createGroup, and createPage with correct parameter types matching the frontend Candid interface. Verify that the actor interface in main.mo is consistent with what the frontend expects in useQueries.ts.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "CivWorld",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

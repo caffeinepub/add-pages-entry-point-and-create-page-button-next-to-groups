@@ -68,7 +68,7 @@ export default function PostCard({ post, showComments = false }: PostCardProps) 
   const isAuthenticated = !!identity;
   const currentPrincipal = identity?.getPrincipal().toString();
   const isOwner =
-    currentPrincipal && post.author.toString() === currentPrincipal;
+    isAuthenticated && currentPrincipal != null && post.author.toString() === currentPrincipal;
 
   const handleLike = async () => {
     if (!isAuthenticated) return;
@@ -130,6 +130,9 @@ export default function PostCard({ post, showComments = false }: PostCardProps) 
       })()
     : null;
 
+  // Check if post has been edited (new field from backend)
+  const isEdited = (post as any).isEdited === true;
+
   return (
     <>
       <article className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden mb-3">
@@ -143,40 +146,47 @@ export default function PostCard({ post, showComments = false }: PostCardProps) 
               <p className="text-sm font-semibold text-foreground leading-tight">
                 {post.author.toString().slice(0, 12)}...
               </p>
-              <p className="text-xs text-muted-foreground">{timeAgo(post.timestamp)}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs text-muted-foreground">{timeAgo(post.timestamp)}</p>
+                {isEdited && (
+                  <span className="text-xs text-muted-foreground/70 italic">· Edited</span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Three-dot menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              {isOwner ? (
-                <>
-                  <DropdownMenuItem onClick={() => setEditOpen(true)} className="gap-2">
-                    <Pencil className="w-4 h-4" />
-                    Edit
+          {/* Three-dot menu — only show if authenticated */}
+          {isAuthenticated && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                {isOwner ? (
+                  <>
+                    <DropdownMenuItem onClick={() => setEditOpen(true)} className="gap-2">
+                      <Pencil className="w-4 h-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setDeleteDialogOpen(true)}
+                      className="gap-2 text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem onClick={() => setReportOpen(true)} className="gap-2">
+                    <Flag className="w-4 h-4" />
+                    Report
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setDeleteDialogOpen(true)}
-                    className="gap-2 text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </>
-              ) : (
-                <DropdownMenuItem onClick={() => setReportOpen(true)} className="gap-2">
-                  <Flag className="w-4 h-4" />
-                  Report
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
 
         {/* Content */}
@@ -237,8 +247,8 @@ export default function PostCard({ post, showComments = false }: PostCardProps) 
         )}
       </article>
 
-      {/* Edit Modal */}
-      {editOpen && (
+      {/* Edit Modal — only for post owner */}
+      {isOwner && editOpen && (
         <EditPostModal
           post={post}
           open={editOpen}
@@ -246,13 +256,15 @@ export default function PostCard({ post, showComments = false }: PostCardProps) 
         />
       )}
 
-      {/* Report Modal */}
-      <ReportModal
-        isOpen={reportOpen}
-        onClose={() => setReportOpen(false)}
-        targetType="post"
-        targetId={Number(post.id)}
-      />
+      {/* Report Modal — only for non-owners */}
+      {!isOwner && (
+        <ReportModal
+          isOpen={reportOpen}
+          onClose={() => setReportOpen(false)}
+          targetType="post"
+          targetId={Number(post.id)}
+        />
+      )}
 
       {/* Delete Confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -10,12 +10,13 @@ import { useView } from '../context/ViewContext';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { Loader2, Home } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
+import type { Post } from '../types';
 
 export default function HomePage() {
   const { currentView } = useView();
   const { identity } = useInternetIdentity();
   const navigate = useNavigate();
-  const { data: posts = [], isLoading, refetch } = useGetPosts();
+  const { data: posts = [], isLoading } = useGetPosts();
 
   if (currentView === 'wallet') {
     return <WalletView />;
@@ -44,9 +45,7 @@ export default function HomePage() {
           </div>
         </button>
 
-        {identity && (
-          <QuickPostBar onPostCreated={() => refetch()} />
-        )}
+        {identity && <QuickPostBar />}
 
         {isLoading ? (
           <div className="flex justify-center py-12">
@@ -57,7 +56,7 @@ export default function HomePage() {
             No posts yet. Be the first to share!
           </div>
         ) : (
-          posts.map((post) => (
+          (posts as Post[]).filter(Boolean).map((post) => (
             <PostCard key={post.id.toString()} post={post} />
           ))
         )}

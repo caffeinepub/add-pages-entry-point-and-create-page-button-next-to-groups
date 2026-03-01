@@ -6,7 +6,6 @@ import {
   createRootRoute,
   RouterProvider,
   Outlet,
-  redirect,
 } from '@tanstack/react-router';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/sonner';
@@ -17,6 +16,7 @@ import BottomNav from './components/BottomNav';
 
 import HomePage from './pages/HomePage';
 import PollsPage from './pages/PollsPage';
+import PollResultsPage from './pages/PollResultsPage';
 import ProfilePage from './pages/ProfilePage';
 import CommunitiesPage from './pages/CommunitiesPage';
 import GroupDetailPage from './pages/GroupDetailPage';
@@ -73,6 +73,12 @@ const pollsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/polls',
   component: PollsPage,
+});
+
+const pollResultsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/poll-results',
+  component: PollResultsPage,
 });
 
 const createPollRoute = createRoute({
@@ -198,6 +204,7 @@ const adminRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   pollsRoute,
+  pollResultsRoute,
   createPollRoute,
   profileRoute,
   communitiesRoute,

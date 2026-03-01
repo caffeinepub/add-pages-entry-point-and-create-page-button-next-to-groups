@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, Coins, TrendingUp, ChevronRight, Star } from 'lucide-react';
-import { useGetCallerWallet, useGetCallerUserProfile } from '../hooks/useQueries';
+import { useGetWallet, useGetCallerUserProfile } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import CVTBalanceCard from '../components/CVTBalanceCard';
 import VerificationStatusCard from '../components/VerificationStatusCard';
@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 export default function WalletPage() {
   const navigate = useNavigate();
   const { identity } = useInternetIdentity();
-  const { data: wallet, isLoading: walletLoading } = useGetCallerWallet();
+  const { data: wallet, isLoading: walletLoading } = useGetWallet();
   const { data: userProfile, isLoading: profileLoading } = useGetCallerUserProfile();
 
   const isLoading = walletLoading || profileLoading;

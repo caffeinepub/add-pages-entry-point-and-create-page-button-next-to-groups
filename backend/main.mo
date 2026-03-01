@@ -1,6 +1,7 @@
 import Array "mo:core/Array";
 import Float "mo:core/Float";
 import Int "mo:core/Int";
+import Iter "mo:core/Iter";
 import List "mo:core/List";
 import Map "mo:core/Map";
 import Nat "mo:core/Nat";
@@ -9,11 +10,13 @@ import Set "mo:core/Set";
 import Text "mo:core/Text";
 import Time "mo:core/Time";
 import Principal "mo:core/Principal";
-import Storage "blob-storage/Storage";
+import Migration "migration";
 import AccessControl "authorization/access-control";
+import Storage "blob-storage/Storage";
 import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
 
+(with migration = Migration.run)
 actor {
   include MixinStorage();
 
@@ -69,6 +72,11 @@ actor {
     #newsFeed;
   };
 
+  public type PostEdit = {
+    content : MediaContent;
+    timestamp : Time.Time;
+  };
+
   public type Post = {
     id : Nat;
     author : Principal;
@@ -78,6 +86,8 @@ actor {
     seriousLikeCount : Nat;
     groupId : ?Nat;
     postType : PostType;
+    editHistory : [PostEdit];
+    isEdited : Bool;
   };
 
   public type Comment = {
@@ -352,6 +362,15 @@ actor {
     hierarchy : [LevelHierarchy];
   };
 
+  public type CreateGroupArgs = {
+    name : Text;
+    description : Text;
+    coverImage : ?Storage.ExternalBlob;
+    adminIds : [Principal];
+    createdAt : Time.Time;
+    creator : Principal;
+  };
+
   var countries : [Country] = [];
   var countryHierarchies : [HierarchyResponse] = [];
   var locations : [Location] = [];
@@ -393,31 +412,158 @@ actor {
   let pages = Map.empty<Nat, Page>();
   var pageCounter = 0;
   let suspendedUsers = Map.empty<Principal, Bool>();
+  let postReports = Map.empty<Nat, List.List<Report>>();
 
-  func isUserVerified(user : Principal) : Bool {
-    switch (verifiedUsers.get(user)) {
-      case (?verifiedUser) { verifiedUser.isVerified };
-      case null { false };
+  // User profile management
+
+  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can get their profile");
     };
+    userProfiles.get(caller);
   };
 
-  func isUserSuspended(user : Principal) : Bool {
-    suspendedUsers.get(user) == ?true;
-  };
-
-  public type PollResults = {
-    votes : [Nat];
-    totalResponses : Nat;
-    userVote : ?Nat;
-  };
-
-  func isTextValid(text : ?Text) : Bool {
-    switch (text) {
-      case (null) { false };
-      case (?value) {
-        let trimmed = value.trim(#char(' '));
-        trimmed.size() > 0;
-      };
+  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
     };
+    userProfiles.get(user);
+  };
+
+  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save profiles");
+    };
+    userProfiles.add(caller, profile);
+  };
+
+  // Post management
+
+  public shared ({ caller }) func createPost(content : MediaContent, groupId : ?Nat, postType : PostType) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create posts");
+    };
+
+    let postId = postCounter;
+    postCounter += 1;
+
+    let newPost : Post = {
+      id = postId;
+      author = caller;
+      content;
+      timestamp = Time.now();
+      likeCount = 0;
+      seriousLikeCount = 0;
+      groupId;
+      postType;
+      editHistory = [];
+      isEdited = false;
+    };
+
+    posts.add(postId, newPost);
+
+    let likes = Set.empty<Principal>();
+    postLikes.add(postId, likes);
+
+    postId;
+  };
+
+  // Poll management
+
+  public shared ({ caller }) func createPoll(question : Text, options : [Text], isPublic : Bool) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create polls");
+    };
+
+    let pollId = pollCounter;
+    pollCounter += 1;
+
+    let votes = Array.tabulate(options.size(), func(_) { 0 });
+
+    let newPoll : Poll = {
+      id = pollId;
+      question;
+      options;
+      votes;
+      isPublic;
+      creator = caller;
+    };
+
+    polls.add(pollId, newPoll);
+
+    let responses = List.empty<PollResponse>();
+    pollResponses.add(pollId, responses);
+
+    pollId;
+  };
+
+  // Group management
+
+  public shared ({ caller }) func createGroup(args : CreateGroupArgs) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create groups");
+    };
+
+    let groupId = groupCounter;
+    groupCounter += 1;
+
+    let newGroup : Group = {
+      id = groupId;
+      name = args.name;
+      description = args.description;
+      creator = caller;
+      coverImage = args.coverImage;
+      createdAt = Time.now();
+    };
+
+    groups.add(groupId, newGroup);
+
+    let memberships = List.empty<GroupMembership>();
+    groupMemberships.add(groupId, memberships);
+
+    groupId;
+  };
+
+  // Page management
+
+  public shared ({ caller }) func createPage(pageName : Text, category : Text, description : Text, profileImage : ?Storage.ExternalBlob, isPrivate : Bool) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create pages");
+    };
+
+    let pageId = pageCounter;
+    pageCounter += 1;
+
+    let newPage : Page = {
+      pageName;
+      category;
+      description;
+      profileImage;
+      owner = caller;
+      creationTime = Time.now();
+      isPrivate;
+    };
+
+    pages.add(pageId, newPage);
+
+    pageId;
+  };
+
+  // Read-only queries (accessible to all, including guests)
+
+  public query func getPost(postId : Nat) : async ?Post {
+    posts.get(postId);
+  };
+
+  public query func getPoll(pollId : Nat) : async ?Poll {
+    polls.get(pollId);
+  };
+
+  public query func getGroup(groupId : Nat) : async ?Group {
+    groups.get(groupId);
+  };
+
+  public query func getPage(pageId : Nat) : async ?Page {
+    pages.get(pageId);
   };
 };

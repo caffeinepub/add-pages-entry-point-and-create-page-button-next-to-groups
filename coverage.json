@@ -1,35 +1,167 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-28T06:19:18.838Z",
+  "generatedAt": "2026-03-01T17:03:31.456Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 7,
+    "implemented": 6,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the comment action dropdown menu (containing Edit and Delete options) in CommentSection.tsx so it is always fully visible regardless of where the comment appears on the screen. The menu is currently being clipped or cut off due to container overflow constraints or incorrect positioning. Use a portal-based rendering approach or switch to a fixed/absolute positioning strategy that accounts for viewport boundaries (e.g., flip the dropdown upward when near the bottom of the screen, and ensure no ancestor container with overflow:hidden clips it).",
+        "summary": "Audit and fix the backend actor initialization in useActor.ts-dependent hooks inside useQueries.ts to ensure the actor is always properly instantiated before any mutation or query is called. Guard all backend calls so they wait for a valid actor instance and do not proceed with undefined/null actor.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/CommentSection.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/CreatePostCard.tsx",
+          "frontend/src/components/QuickPostBar.tsx",
+          "frontend/src/components/CreateGroupPostModal.tsx",
+          "frontend/src/pages/SharePage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/CommentSection.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/CreatePostCard.tsx",
+          "frontend/src/components/QuickPostBar.tsx",
+          "frontend/src/components/CreateGroupPostModal.tsx"
         ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Fix the post creation flow so that submitting a new post via CreatePostCard, QuickPostBar, CreateGroupPostModal, and SharePage successfully calls the backend createPost method and the new post appears in the feed without errors.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/CreatePostCard.tsx",
+          "frontend/src/components/QuickPostBar.tsx",
+          "frontend/src/components/CreateGroupPostModal.tsx",
+          "frontend/src/pages/HomePage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/CreatePostCard.tsx",
+          "frontend/src/components/QuickPostBar.tsx",
+          "frontend/src/components/CreateGroupPostModal.tsx",
+          "frontend/src/pages/HomePage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Fix the poll creation flow so that submitting a new poll via CreatePollPage and any poll creation modal correctly calls the backend createPoll method and the new poll appears in PollsPage without errors.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/CreatePollPage.tsx",
+          "frontend/src/pages/PollsPage.tsx",
+          "frontend/src/components/CreatePollCard.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/CreatePollPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Fix the group creation flow so that submitting a new group via CreateGroupPage and CreateGroupModal correctly calls the backend createGroup method and the new group appears in CommunitiesPage/GroupsPage without errors.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/CreateGroupPage.tsx",
+          "frontend/src/components/CreateGroupModal.tsx",
+          "frontend/src/pages/GroupsPage.tsx",
+          "frontend/src/pages/CommunitiesPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/CreateGroupPage.tsx",
+          "frontend/src/components/CreateGroupModal.tsx"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Fix the page creation flow so that submitting a new community page via CreatePagePage correctly calls the backend createPage method and the new page appears in PagesPage/CommunitiesPage without errors.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/CreatePagePage.tsx",
+          "frontend/src/pages/PagesPage.tsx",
+          "frontend/src/pages/CommunitiesPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/CreatePagePage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-6",
+        "summary": "Remove or suppress all raw actor error messages currently displayed in the UI. Replace any raw canister/actor error display with user-friendly error messages using the existing backendErrors.ts utilities. Errors should be shown as dismissible toast notifications or inline form errors, not as raw technical strings.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/CreatePostCard.tsx",
+          "frontend/src/components/QuickPostBar.tsx",
+          "frontend/src/components/CreateGroupPostModal.tsx",
+          "frontend/src/pages/CreatePollPage.tsx",
+          "frontend/src/pages/CreateGroupPage.tsx",
+          "frontend/src/components/CreateGroupModal.tsx",
+          "frontend/src/pages/CreatePagePage.tsx",
+          "frontend/src/pages/HomePage.tsx",
+          "frontend/src/pages/PollsPage.tsx",
+          "frontend/src/pages/GroupsPage.tsx",
+          "frontend/src/pages/PagesPage.tsx",
+          "frontend/src/pages/CommunitiesPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/CreatePostCard.tsx",
+          "frontend/src/components/QuickPostBar.tsx",
+          "frontend/src/components/CreateGroupPostModal.tsx",
+          "frontend/src/pages/CreatePollPage.tsx",
+          "frontend/src/pages/CreateGroupPage.tsx",
+          "frontend/src/components/CreateGroupModal.tsx",
+          "frontend/src/pages/CreatePagePage.tsx",
+          "frontend/src/pages/HomePage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-7",
+        "summary": "Ensure the Motoko backend actor exposes all required update methods for createPost, createPoll, createGroup, and createPage with correct parameter types matching the frontend Candid interface. Verify that the actor interface in main.mo is consistent with what the frontend expects in useQueries.ts.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/AnalyticsDashboard.tsx",
+    "frontend/src/components/ChatWindow.tsx",
     "frontend/src/components/CommentSection.tsx",
+    "frontend/src/components/CreateGroupModal.tsx",
+    "frontend/src/components/CreateGroupPostModal.tsx",
+    "frontend/src/components/CreatePostCard.tsx",
     "frontend/src/components/PollCard.tsx",
+    "frontend/src/components/QuickPostBar.tsx",
+    "frontend/src/components/ReportModal.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AdminPage.tsx",
+    "frontend/src/pages/CreateGroupPage.tsx",
+    "frontend/src/pages/CreatePagePage.tsx",
+    "frontend/src/pages/CreatePollPage.tsx",
+    "frontend/src/pages/DiscussionsPage.tsx",
+    "frontend/src/pages/GroupDetailPage.tsx",
+    "frontend/src/pages/HomePage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

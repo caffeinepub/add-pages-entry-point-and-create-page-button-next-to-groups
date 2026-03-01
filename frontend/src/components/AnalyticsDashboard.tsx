@@ -1,6 +1,8 @@
 import React from 'react';
-import { useGetAnalytics, TrendingHashtagItem, AnalyticsResult } from '../hooks/useQueries';
-import type { Post, UserProfile } from '../types';
+import { useGetAnalytics } from '../hooks/useQueries';
+import type { TrendingHashtagItem, AnalyticsResult } from '../hooks/useQueries';
+import type { UserProfile } from '../backend';
+import type { Post } from '../types';
 import { Loader2, TrendingUp, Heart, MessageCircle, Users, BarChart2 } from 'lucide-react';
 
 function StatCard({
@@ -55,7 +57,7 @@ export default function AnalyticsDashboard() {
       </div>
 
       {/* Trending Hashtags */}
-      {analytics.trendingHashtags.length > 0 && (
+      {analytics.trendingHashtags && analytics.trendingHashtags.length > 0 && (
         <div className="bg-card border border-border rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-4 h-4 text-primary" />
@@ -75,7 +77,7 @@ export default function AnalyticsDashboard() {
       )}
 
       {/* Top Posts */}
-      {analytics.topPosts.length > 0 && (
+      {analytics.topPosts && analytics.topPosts.length > 0 && (
         <div className="bg-card border border-border rounded-2xl p-4">
           <h3 className="font-semibold text-foreground text-sm mb-3">Top Posts</h3>
           <div className="space-y-3">
@@ -96,7 +98,7 @@ export default function AnalyticsDashboard() {
       )}
 
       {/* Top Contributors */}
-      {analytics.topContributors.length > 0 && (
+      {analytics.topContributors && analytics.topContributors.length > 0 && (
         <div className="bg-card border border-border rounded-2xl p-4">
           <h3 className="font-semibold text-foreground text-sm mb-3">Top Contributors</h3>
           <div className="space-y-3">

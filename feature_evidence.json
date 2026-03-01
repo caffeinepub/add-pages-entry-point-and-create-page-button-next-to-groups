@@ -2,10 +2,13 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-comment-action-dropdown-menu-containing-edit-and-delete-options-in-commentsection-tsx-so-it-is-always-fully-visible-regardless-of-where-the-comment-appears-on-the-screen-the-menu-is-currently-being-clipped-or-cut-off-due-to-container-overflow-constraints-or-incorrect-positioning-use-a-portal-based-rendering-approach-or-switch-to-a-fixed-absolute-positioning-strategy-that-accounts-for-viewport-boundaries-e-g-flip-the-dropdown-upward-when-near-the-bottom-of-the-screen-and-ensure-no-ancestor-container-with-overflow-hidden-clips-it",
-      "featureTitle": "Fix the comment action dropdown menu (containing Edit and Delete options) in CommentSection.tsx so it is always fully visible regardless of where the comment appears on the screen. The menu is currently being clipped or cut off due to container overflow constraints or incorrect positioning. Use a portal-based rendering approach or switch to a fixed/absolute positioning strategy that accounts for viewport boundaries (e.g., flip the dropdown upward when near the bottom of the screen, and ensure no ancestor container with overflow:hidden clips it).",
+      "featureId": "feature-audit-and-fix-the-backend-actor-initialization-in-useactor-ts-dependent-hooks-inside-usequeries-ts-to-ensure-the-actor-is-always-properly-instantiated-before-any-mutation-or-query-is-called-guard-all-backend-calls-so-they-wait-for-a-valid-actor-instance-and-do-not-proceed-with-undefined-null-actor",
+      "featureTitle": "Audit and fix the backend actor initialization in useActor.ts-dependent hooks inside useQueries.ts to ensure the actor is always properly instantiated before any mutation or query is called. Guard all backend calls so they wait for a valid actor instance and do not proceed with undefined/null actor.",
       "files": [
-        "frontend/src/components/CommentSection.tsx"
+        "frontend/src/components/CreateGroupPostModal.tsx",
+        "frontend/src/components/CreatePostCard.tsx",
+        "frontend/src/components/QuickPostBar.tsx",
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -18,6 +21,122 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-fix-the-post-creation-flow-so-that-submitting-a-new-post-via-createpostcard-quickpostbar-creategrouppostmodal-and-sharepage-successfully-calls-the-backend-createpost-method-and-the-new-post-appears-in-the-feed-without-errors",
+      "featureTitle": "Fix the post creation flow so that submitting a new post via CreatePostCard, QuickPostBar, CreateGroupPostModal, and SharePage successfully calls the backend createPost method and the new post appears in the feed without errors.",
+      "files": [
+        "frontend/src/components/CreateGroupPostModal.tsx",
+        "frontend/src/components/CreatePostCard.tsx",
+        "frontend/src/components/QuickPostBar.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/HomePage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-fix-the-poll-creation-flow-so-that-submitting-a-new-poll-via-createpollpage-and-any-poll-creation-modal-correctly-calls-the-backend-createpoll-method-and-the-new-poll-appears-in-pollspage-without-errors",
+      "featureTitle": "Fix the poll creation flow so that submitting a new poll via CreatePollPage and any poll creation modal correctly calls the backend createPoll method and the new poll appears in PollsPage without errors.",
+      "files": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/CreatePollPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-fix-the-group-creation-flow-so-that-submitting-a-new-group-via-creategrouppage-and-creategroupmodal-correctly-calls-the-backend-creategroup-method-and-the-new-group-appears-in-communitiespage-groupspage-without-errors",
+      "featureTitle": "Fix the group creation flow so that submitting a new group via CreateGroupPage and CreateGroupModal correctly calls the backend createGroup method and the new group appears in CommunitiesPage/GroupsPage without errors.",
+      "files": [
+        "frontend/src/components/CreateGroupModal.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/CreateGroupPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-fix-the-page-creation-flow-so-that-submitting-a-new-community-page-via-createpagepage-correctly-calls-the-backend-createpage-method-and-the-new-page-appears-in-pagespage-communitiespage-without-errors",
+      "featureTitle": "Fix the page creation flow so that submitting a new community page via CreatePagePage correctly calls the backend createPage method and the new page appears in PagesPage/CommunitiesPage without errors.",
+      "files": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/CreatePagePage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-remove-or-suppress-all-raw-actor-error-messages-currently-displayed-in-the-ui-replace-any-raw-canister-actor-error-display-with-user-friendly-error-messages-using-the-existing-backenderrors-ts-utilities-errors-should-be-shown-as-dismissible-toast-notifications-or-inline-form-errors-not-as-raw-technical-strings",
+      "featureTitle": "Remove or suppress all raw actor error messages currently displayed in the UI. Replace any raw canister/actor error display with user-friendly error messages using the existing backendErrors.ts utilities. Errors should be shown as dismissible toast notifications or inline form errors, not as raw technical strings.",
+      "files": [
+        "frontend/src/components/CreateGroupModal.tsx",
+        "frontend/src/components/CreateGroupPostModal.tsx",
+        "frontend/src/components/CreatePostCard.tsx",
+        "frontend/src/components/QuickPostBar.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/CreateGroupPage.tsx",
+        "frontend/src/pages/CreatePagePage.tsx",
+        "frontend/src/pages/CreatePollPage.tsx",
+        "frontend/src/pages/HomePage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
       ],
       "confidence": "high"
     }

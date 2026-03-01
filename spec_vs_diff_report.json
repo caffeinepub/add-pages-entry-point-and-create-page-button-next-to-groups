@@ -1,23 +1,76 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-28T06:19:18.834Z",
-  "summary": "The diff shows modifications to CommentSection.tsx that import and use DropdownMenuPortal from the shadcn/ui dropdown-menu component, which is a portal-based rendering approach as required by REQ-1. The implementation uses DropdownMenuPortal to wrap DropdownMenuContent, ensuring the menu renders outside any overflow-clipping ancestor containers. PollCard.tsx and other files appear to be unrelated changes. The core fix aligns with the requirement, though the truncated diff prevents full verification of all acceptance criteria.",
-  "missing_requirements": [],
-  "hallucinated_features": [
+  "generatedAt": "2026-03-01T17:03:31.450Z",
+  "summary": "The diff implements actor-readiness guards across creation flows (posts, polls, groups, pages), integrates formatBackendError/backendErrors.ts for user-facing errors, adds backend migration.mo, modifies main.mo, and updates useQueries.ts with actor guards. Most requirements are substantially addressed. However, SharePage post creation (part of REQ-2) is not evidenced in the diff, and there is no evidence of a dedicated SharePage file being modified. REQ-7 backend method signatures cannot be fully verified from the truncated main.mo diff.",
+  "missing_requirements": [
     {
-      "description": "Modifications to PollCard.tsx including vote status loading skeleton and poll results display changes",
-      "reason": "The build request specifies a frontend-only fix for the comment dropdown clipping issue in CommentSection.tsx. Changes to PollCard.tsx were not requested and are unrelated to the dropdown fix.",
+      "id": "REQ-2",
+      "requirement": "Fix post creation via SharePage so submitting a new post successfully calls the backend createPost method",
+      "reason": "The diff shows fixes for CreatePostCard, QuickPostBar, and CreateGroupPostModal, but no SharePage file is included in the modified files list. The AC explicitly requires SharePage to work.",
+      "evidence": []
+    },
+    {
+      "id": "REQ-7",
+      "requirement": "Backend actor exposes createPost, createPoll, createGroup, and createPage as callable update methods with correct Candid-matching signatures",
+      "reason": "main.mo is modified but the diff is truncated and does not show the actual method implementations for createPost, createPoll, createGroup, or createPage. It is not verifiable from the available diff that all four methods exist with correct signatures.",
       "evidence": [
-        "frontend/src/components/PollCard.tsx"
+        "backend/main.mo"
       ]
     }
   ],
-  "confidence": 0.62,
+  "hallucinated_features": [
+    {
+      "description": "migration.mo module added as a new backend file with full data type definitions",
+      "reason": "The build request does not mention creating a migration module or migration.mo file. This appears to be an added backend module beyond what was requested.",
+      "evidence": [
+        "backend/migration.mo"
+      ]
+    },
+    {
+      "description": "MixinAuthorization and AccessControl integration added in main.mo backend actor",
+      "reason": "The build request only asks to expose and fix createPost/createPoll/createGroup/createPage methods. Adding access control mixins was not requested.",
+      "evidence": [
+        "backend/main.mo"
+      ]
+    },
+    {
+      "description": "isPrivate field added to CreatePagePage form with a Switch toggle",
+      "reason": "The build request requires fixing the page creation flow with name, category, and description fields. Adding an isPrivate toggle was not part of any requirement.",
+      "evidence": [
+        "frontend/src/pages/CreatePagePage.tsx"
+      ]
+    },
+    {
+      "description": "categorySearch and dropdown filter UI for page categories in CreatePagePage",
+      "reason": "The build request only requires fixing the page creation flow, not redesigning the category selection UI with search functionality.",
+      "evidence": [
+        "frontend/src/pages/CreatePagePage.tsx"
+      ]
+    }
+  ],
+  "confidence": 0.72,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
+    "frontend/src/components/AnalyticsDashboard.tsx",
+    "frontend/src/components/ChatWindow.tsx",
     "frontend/src/components/CommentSection.tsx",
+    "frontend/src/components/CreateGroupModal.tsx",
+    "frontend/src/components/CreateGroupPostModal.tsx",
+    "frontend/src/components/CreatePostCard.tsx",
     "frontend/src/components/PollCard.tsx",
+    "frontend/src/components/QuickPostBar.tsx",
+    "frontend/src/components/ReportModal.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/AdminPage.tsx",
+    "frontend/src/pages/CreateGroupPage.tsx",
+    "frontend/src/pages/CreatePagePage.tsx",
+    "frontend/src/pages/CreatePollPage.tsx",
+    "frontend/src/pages/DiscussionsPage.tsx",
+    "frontend/src/pages/GroupDetailPage.tsx",
+    "frontend/src/pages/HomePage.tsx",
     "project_state.json"
   ]
 }

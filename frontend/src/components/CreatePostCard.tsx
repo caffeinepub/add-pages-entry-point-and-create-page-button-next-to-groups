@@ -1,196 +1,230 @@
-import React, { useState, useRef } from 'react';
-import { Image, Video, Send, X, Loader2 } from 'lucide-react';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useCreatePost } from '../hooks/useQueries';
-import { ExternalBlob } from '../backend';
-import { getBackendErrorMessage } from '../utils/backendErrors';
-import { toast } from 'sonner';
+import React, { useState, useRef } from "react";
+import { Image, Video, X, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useCreatePost } from "../hooks/useQueries";
+import { useActor } from "../hooks/useActor";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { ExternalBlob, PostType, MediaContent } from "../backend";
+import { formatBackendError } from "../utils/backendErrors";
 
 interface CreatePostCardProps {
-  groupId?: bigint | number | null;
   onPostCreated?: () => void;
+  groupId?: bigint;
 }
 
-export default function CreatePostCard({ groupId = null, onPostCreated }: CreatePostCardProps) {
-  const { identity } = useInternetIdentity();
-  const [text, setText] = useState('');
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+export default function CreatePostCard({ onPostCreated, groupId }: CreatePostCardProps) {
+  const [text, setText] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
+  const { actor, isFetching: actorFetching } = useActor();
+  const { identity } = useInternetIdentity();
   const createPost = useCreatePost();
 
-  const handleMediaSelect = (file: File, type: 'image' | 'video') => {
-    setMediaFile(file);
-    setMediaType(type);
-    const url = URL.createObjectURL(file);
-    setMediaPreview(url);
-  };
+  const isActorReady = !!actor && !actorFetching;
+  const isAuthenticated = !!identity;
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleMediaSelect(file, 'image');
+    if (!file) return;
+    setImageFile(file);
+    setVideoFile(null);
+    setVideoPreview(null);
+    const url = URL.createObjectURL(file);
+    setImagePreview(url);
   };
 
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleMediaSelect(file, 'video');
+    if (!file) return;
+    setVideoFile(file);
+    setImageFile(null);
+    setImagePreview(null);
+    const url = URL.createObjectURL(file);
+    setVideoPreview(url);
   };
 
   const clearMedia = () => {
-    setMediaFile(null);
-    setMediaPreview(null);
-    setMediaType(null);
+    setImageFile(null);
+    setVideoFile(null);
+    setImagePreview(null);
+    setVideoPreview(null);
     setUploadProgress(0);
-    if (imageInputRef.current) imageInputRef.current.value = '';
-    if (videoInputRef.current) videoInputRef.current.value = '';
+    if (imageInputRef.current) imageInputRef.current.value = "";
+    if (videoInputRef.current) videoInputRef.current.value = "";
   };
 
   const handleSubmit = async () => {
-    if (!identity) {
-      toast.error('Please log in to create a post');
+    if (!text.trim() && !imageFile && !videoFile) {
+      toast.error("Please add some content to your post.");
       return;
     }
-    const trimmed = text.trim();
-    if (!trimmed && !mediaFile) {
-      toast.error('Please add some text or media to your post');
+    if (!isAuthenticated) {
+      toast.error("Please log in to create a post.");
+      return;
+    }
+    if (!isActorReady) {
+      toast.error("Still connecting to the network. Please try again.");
       return;
     }
 
     try {
-      let imageBlob: ExternalBlob | null = null;
-      let videoBlob: ExternalBlob | null = null;
+      let imageBlob: ExternalBlob | undefined;
+      let videoBlob: ExternalBlob | undefined;
 
-      if (mediaFile && mediaType === 'image') {
-        const bytes = new Uint8Array(await mediaFile.arrayBuffer());
+      if (imageFile) {
+        const bytes = new Uint8Array(await imageFile.arrayBuffer());
         imageBlob = ExternalBlob.fromBytes(bytes).withUploadProgress((pct) =>
           setUploadProgress(pct)
         );
-      } else if (mediaFile && mediaType === 'video') {
-        const bytes = new Uint8Array(await mediaFile.arrayBuffer());
+      }
+
+      if (videoFile) {
+        const bytes = new Uint8Array(await videoFile.arrayBuffer());
         videoBlob = ExternalBlob.fromBytes(bytes).withUploadProgress((pct) =>
           setUploadProgress(pct)
         );
       }
 
-      const content = {
-        text: trimmed || null,
+      const content: MediaContent = {
+        text: text.trim() || undefined,
         image: imageBlob,
         video: videoBlob,
       };
 
-      const numGroupId =
-        groupId !== null && groupId !== undefined ? Number(groupId) : undefined;
+      await createPost.mutateAsync({
+        content,
+        groupId: groupId ?? null,
+        postType: PostType.regular,
+      });
 
-      await createPost.mutateAsync({ content, groupId: numGroupId });
-
-      setText('');
+      setText("");
       clearMedia();
       onPostCreated?.();
-    } catch (err) {
-      toast.error(getBackendErrorMessage(err));
+      // Dispatch event for pages listening to post creation
+      window.dispatchEvent(new CustomEvent("postCreated"));
+    } catch (error: unknown) {
+      const msg = formatBackendError(error);
+      toast.error(msg);
     }
   };
 
-  const canSubmit = (text.trim().length > 0 || !!mediaFile) && !createPost.isPending;
+  if (!isAuthenticated) {
+    return (
+      <div className="bg-card border border-border rounded-2xl p-4 text-center text-muted-foreground text-sm">
+        Log in to create a post
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-card rounded-2xl shadow-sm border border-border p-4 mb-4">
-      <div className="flex gap-3">
-        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
-          {identity ? identity.getPrincipal().toString().slice(0, 2).toUpperCase() : '?'}
-        </div>
-        <div className="flex-1">
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Share your civic thoughts..."
-            className="w-full bg-muted/50 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[80px]"
-            disabled={createPost.isPending}
-          />
+    <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+      <textarea
+        className="w-full bg-muted/40 rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[80px]"
+        placeholder="What's on your mind?"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        disabled={createPost.isPending}
+      />
 
-          {/* Media Preview */}
-          {mediaPreview && (
-            <div className="relative mt-2 rounded-xl overflow-hidden">
-              {mediaType === 'image' ? (
-                <img src={mediaPreview} alt="Preview" className="w-full max-h-48 object-cover" />
-              ) : (
-                <video src={mediaPreview} controls className="w-full max-h-48" />
-              )}
-              <button
-                onClick={clearMedia}
-                className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1"
-                aria-label="Remove media"
-              >
-                <X className="w-4 h-4" />
-              </button>
-              {createPost.isPending && uploadProgress > 0 && uploadProgress < 100 && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
-                  <div
-                    className="h-full bg-primary transition-all"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-              )}
-            </div>
+      {/* Media preview */}
+      {(imagePreview || videoPreview) && (
+        <div className="relative rounded-xl overflow-hidden">
+          {imagePreview && (
+            <img
+              src={imagePreview}
+              alt="Preview"
+              className="w-full max-h-64 object-cover rounded-xl"
+            />
           )}
-
-          {/* Actions */}
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex gap-2">
-              <input
-                ref={imageInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageChange}
-              />
-              <input
-                ref={videoInputRef}
-                type="file"
-                accept="video/*"
-                className="hidden"
-                onChange={handleVideoChange}
-              />
-              <button
-                onClick={() => imageInputRef.current?.click()}
-                disabled={createPost.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50"
-              >
-                <Image className="w-4 h-4" />
-                Photo
-              </button>
-              <button
-                onClick={() => videoInputRef.current?.click()}
-                disabled={createPost.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50"
-              >
-                <Video className="w-4 h-4" />
-                Video
-              </button>
-            </div>
-            <button
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {createPost.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Posting...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  Post
-                </>
-              )}
-            </button>
-          </div>
+          {videoPreview && (
+            <video
+              src={videoPreview}
+              className="w-full max-h-64 rounded-xl"
+              controls
+            />
+          )}
+          <button
+            onClick={clearMedia}
+            className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+          >
+            <X size={14} />
+          </button>
         </div>
+      )}
+
+      {/* Upload progress */}
+      {createPost.isPending && uploadProgress > 0 && uploadProgress < 100 && (
+        <div className="w-full bg-muted rounded-full h-1.5">
+          <div
+            className="bg-primary h-1.5 rounded-full transition-all"
+            style={{ width: `${uploadProgress}%` }}
+          />
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageChange}
+          />
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/*"
+            className="hidden"
+          onChange={handleVideoChange}
+          />
+          <button
+            onClick={() => imageInputRef.current?.click()}
+            disabled={createPost.isPending || !isActorReady}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1.5 rounded-lg hover:bg-muted disabled:opacity-50"
+          >
+            <Image size={16} />
+            <span>Photo</span>
+          </button>
+          <button
+            onClick={() => videoInputRef.current?.click()}
+            disabled={createPost.isPending || !isActorReady}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1.5 rounded-lg hover:bg-muted disabled:opacity-50"
+          >
+            <Video size={16} />
+            <span>Video</span>
+          </button>
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={
+            createPost.isPending ||
+            !isActorReady ||
+            (!text.trim() && !imageFile && !videoFile)
+          }
+          className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {createPost.isPending ? (
+            <>
+              <Loader2 size={14} className="animate-spin" />
+              <span>Posting…</span>
+            </>
+          ) : !isActorReady ? (
+            <>
+              <Loader2 size={14} className="animate-spin" />
+              <span>Connecting…</span>
+            </>
+          ) : (
+            <span>Post</span>
+          )}
+        </button>
       </div>
     </div>
   );

@@ -41,6 +41,12 @@ export interface MediaContent {
   video: any | null;
 }
 
+// Post Edit (audit history entry)
+export interface PostEdit {
+  content: MediaContent;
+  timestamp: bigint;
+}
+
 // Post Types
 export interface Post {
   id: bigint;
@@ -51,6 +57,8 @@ export interface Post {
   seriousLikeCount: bigint;
   groupId: bigint | null;
   postType: PostType;
+  editHistory: PostEdit[];
+  isEdited: boolean;
 }
 
 // Comment Types — matches the backend Comment shape
@@ -217,6 +225,7 @@ export enum ReportReason {
   misinformation = "misinformation",
   inappropriateContent = "inappropriateContent",
   harassment = "harassment",
+  hateSpeech = "hateSpeech",
   other = "other"
 }
 

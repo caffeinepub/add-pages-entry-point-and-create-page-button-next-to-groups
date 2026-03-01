@@ -1,23 +1,255 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix comment Edit/Delete dropdown menu clipping/overflow issue",
+  "title": "Fix actor bindings and repair creation flows for posts, polls, groups, and pages",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Fix comment action dropdown menu visibility using portal-based rendering or viewport-aware positioning",
+      "summary": "Audit and fix backend actor initialization in useQueries.ts to ensure actor is always properly instantiated before any mutation or query is called",
       "acceptanceCriteria": [
-        "The Edit and Delete options in the comment dropdown menu are fully visible for every comment in the list, including those near the bottom or edges of the screen.",
-        "The dropdown does not get clipped by any parent container's overflow settings.",
-        "The dropdown repositions itself (flips upward or adjusts) when there is insufficient space below the trigger button.",
-        "The fix applies consistently across all comment nesting levels (top-level comments and replies).",
-        "No regression in existing comment actions (like, report, reply) after the fix."
+        "No 'actor not found' or actor-related error messages appear anywhere in the UI",
+        "All mutations (createPost, createPoll, createGroup, createPage) correctly await a valid actor before executing",
+        "If the actor is not yet available, mutations show a loading state rather than an error"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/CommentSection.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Replace the current DropdownMenu implementation with a portal-based approach using shadcn/ui DropdownMenuPortal or implement custom viewport-aware positioning logic. Add collision detection to flip the dropdown upward when near the bottom of the viewport. Ensure the dropdown menu container uses fixed or absolute positioning that is not constrained by parent overflow properties. Test the solution with comments at various scroll positions and nesting levels to verify visibility. Preserve all existing comment action handlers (like, report, reply, edit, delete) without modification."
+          "description": "Audit all mutation hooks (useCreatePost, useCreatePoll, useCreateGroup, useCreatePage) to ensure they check for actor availability before executing. Add guards that prevent mutation execution when actor is null/undefined. Ensure mutations are disabled (via React Query's enabled option or manual checks) when actorFetching is true or actor is not available. Add proper loading states that reflect actor initialization status. Verify all mutation hooks depend on the actor being ready before allowing execution."
+        },
+        {
+          "path": "frontend/src/components/CreatePostCard.tsx",
+          "operation": "modify",
+          "description": "Update the component to check actor availability from useActor hook before allowing post submission. Disable the submit button or show a loading state when actor is not ready. Ensure the createPost mutation respects actor initialization state and does not execute if actor is unavailable."
+        },
+        {
+          "path": "frontend/src/components/QuickPostBar.tsx",
+          "operation": "modify",
+          "description": "Add actor availability checks before allowing post creation. Disable post submission UI elements when actor is not initialized. Display appropriate loading or unavailable state when actorFetching is true."
+        },
+        {
+          "path": "frontend/src/components/CreateGroupPostModal.tsx",
+          "operation": "modify",
+          "description": "Guard the group post creation flow with actor availability checks. Prevent form submission when actor is null or still fetching. Show loading state in the modal when actor is initializing."
+        },
+        {
+          "path": "frontend/src/pages/SharePage.tsx",
+          "operation": "modify",
+          "description": "Ensure the CreatePostCard component used on this page properly receives and handles actor availability state. Verify post creation navigation only occurs after successful actor-based submission."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Fix the post creation flow so that submitting a new post successfully calls the backend createPost method and the new post appears in the feed without errors",
+      "acceptanceCriteria": [
+        "Authenticated users can create a text-only post and see it appear in the home feed",
+        "Authenticated users can create a post with an image or video attachment",
+        "No actor or canister errors are thrown during post creation",
+        "After successful creation, the post feed is invalidated and refreshed"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Fix the useCreatePost mutation hook to properly construct the MediaContent payload according to the backend interface (with optional text, image, video fields). Ensure the mutation correctly passes the content parameter, groupId (as bigint | null), and postType to actor.createPost. Add proper query invalidation for 'posts' and 'homeFeed' query keys after successful post creation. Verify the mutation's onSuccess callback invalidates all relevant post queries to trigger feed refresh."
+        },
+        {
+          "path": "frontend/src/components/CreatePostCard.tsx",
+          "operation": "modify",
+          "description": "Verify the component correctly constructs MediaContent with text, image, and video fields matching the backend interface. Ensure ExternalBlob instances for image/video are properly passed to the mutation. Add error handling that uses backendErrors.ts to display user-friendly error messages. Ensure upload progress tracking works correctly for image and video uploads. After successful post creation, clear the form and show success feedback."
+        },
+        {
+          "path": "frontend/src/components/QuickPostBar.tsx",
+          "operation": "modify",
+          "description": "Ensure the quick post dialog correctly constructs MediaContent payload matching the backend interface. Verify image and video uploads are properly handled with ExternalBlob and upload progress tracking. Add error handling using backendErrors.ts for user-friendly error display. Clear form state after successful submission."
+        },
+        {
+          "path": "frontend/src/components/CreateGroupPostModal.tsx",
+          "operation": "modify",
+          "description": "Fix the group post creation to correctly pass the groupId parameter (as bigint) to the createPost mutation. Ensure MediaContent construction matches the backend interface. Add proper error handling with backendErrors.ts. Invalidate group-specific post queries after successful creation."
+        },
+        {
+          "path": "frontend/src/pages/HomePage.tsx",
+          "operation": "modify",
+          "description": "Verify the posts query is properly configured to refetch after post creation query invalidation. Ensure the feed displays newly created posts after the query cache is invalidated and refetched. Add proper loading and error states that use backendErrors.ts for user-friendly error messages."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Fix the poll creation flow so that submitting a new poll correctly calls the backend createPoll method and the new poll appears in PollsPage without errors",
+      "acceptanceCriteria": [
+        "Authenticated users can create a poll with a question and at least two options",
+        "The created poll appears in PollsPage after submission",
+        "No actor or canister errors are thrown during poll creation",
+        "Poll voting works after creation"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Fix the useCreatePoll mutation hook to correctly call actor.createPoll with question (string), options (Array<string>), and isPublic (boolean) parameters matching the backend interface. Add proper query invalidation for 'polls' query key after successful poll creation. Verify the mutation returns the new poll ID (bigint) and handles it correctly. Add error handling that captures and formats backend errors."
+        },
+        {
+          "path": "frontend/src/pages/CreatePollPage.tsx",
+          "operation": "modify",
+          "description": "Verify the form correctly validates at least 2 options before submission. Ensure the createPoll mutation is called with the correct parameter types (question as string, options as string array, isPublic as boolean). Add error handling using backendErrors.ts to display user-friendly error messages. Navigate to /polls after successful poll creation and ensure the polls query is refetched."
+        },
+        {
+          "path": "frontend/src/pages/PollsPage.tsx",
+          "operation": "modify",
+          "description": "Verify the polls query properly refetches after poll creation query invalidation. Ensure newly created polls appear in the list after successful creation. Add proper error handling using backendErrors.ts for user-friendly error display."
+        },
+        {
+          "path": "frontend/src/components/CreatePollCard.tsx",
+          "operation": "modify",
+          "description": "If this component exists and is used for poll creation, ensure it correctly constructs the poll creation payload matching the backend interface. Add proper error handling with backendErrors.ts. Ensure query invalidation triggers after successful creation."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Fix the group creation flow so that submitting a new group correctly calls the backend createGroup method and the new group appears in CommunitiesPage/GroupsPage without errors",
+      "acceptanceCriteria": [
+        "Authenticated users can create a group with a name and description",
+        "The newly created group is visible in GroupsPage and CommunitiesPage",
+        "No actor or canister errors are thrown during group creation",
+        "After creation, the groups query cache is invalidated and refreshed"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Fix the useCreateGroup mutation hook to correctly construct CreateGroupArgs matching the backend interface. Ensure the mutation passes creator (Principal from identity), adminIds (Array<Principal>, can be empty array or [creator]), name (string), createdAt (Time as bigint using BigInt(Date.now()) * 1_000_000n), description (string), and optional coverImage (ExternalBlob | null). Add proper query invalidation for 'groups' query key after successful creation. Verify error handling captures backend errors correctly."
+        },
+        {
+          "path": "frontend/src/pages/CreateGroupPage.tsx",
+          "operation": "modify",
+          "description": "Verify the form correctly collects name, description, and optional cover image. Ensure the createGroup mutation is called with properly constructed CreateGroupArgs. Use the current user's principal as creator and include it in adminIds array. Set createdAt to current timestamp in nanoseconds (BigInt(Date.now()) * 1_000_000n). Handle cover image upload with ExternalBlob and upload progress tracking. Add error handling using backendErrors.ts. Navigate to /groups or /communities after successful creation."
+        },
+        {
+          "path": "frontend/src/components/CreateGroupModal.tsx",
+          "operation": "modify",
+          "description": "Ensure the modal correctly constructs CreateGroupArgs with all required fields (creator, adminIds, name, createdAt, description, optional coverImage). Verify cover image upload uses ExternalBlob with progress tracking. Add proper error handling with backendErrors.ts for user-friendly error display. Close modal and invalidate groups query after successful creation."
+        },
+        {
+          "path": "frontend/src/pages/GroupsPage.tsx",
+          "operation": "modify",
+          "description": "Verify the groups query properly refetches after group creation query invalidation. Ensure newly created groups appear in the list. Add proper error handling using backendErrors.ts for user-friendly error messages."
+        },
+        {
+          "path": "frontend/src/pages/CommunitiesPage.tsx",
+          "operation": "modify",
+          "description": "Verify the Groups tab properly displays newly created groups after query invalidation and refetch. Ensure the groups query is properly configured to refetch when the cache is invalidated."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Fix the page creation flow so that submitting a new community page correctly calls the backend createPage method and the new page appears in PagesPage/CommunitiesPage without errors",
+      "acceptanceCriteria": [
+        "Authenticated users can create a community page with a name, category, and description",
+        "The newly created page is visible in PagesPage and CommunitiesPage",
+        "No actor or canister errors are thrown during page creation",
+        "After creation, the pages query cache is invalidated and refreshed"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Fix the useCreatePage mutation hook to correctly call actor.createPage with pageName (string), category (string), description (string), profileImage (ExternalBlob | null), and isPrivate (boolean) parameters matching the backend interface. Add proper query invalidation for 'pages' query key after successful page creation. Verify the mutation returns the new page ID (bigint) and handles it correctly. Add error handling that captures and formats backend errors."
+        },
+        {
+          "path": "frontend/src/pages/CreatePagePage.tsx",
+          "operation": "modify",
+          "description": "Verify the form correctly collects pageName, category (from predefined list), description, privacy toggle (isPrivate boolean), and optional profile image. Ensure the createPage mutation is called with correct parameter types. Handle profile image upload with ExternalBlob and upload progress tracking. Add error handling using backendErrors.ts for user-friendly error messages. Navigate to /pages or /communities after successful creation."
+        },
+        {
+          "path": "frontend/src/pages/PagesPage.tsx",
+          "operation": "modify",
+          "description": "Verify the pages query properly refetches after page creation query invalidation. Ensure newly created pages appear in the list. Add proper error handling using backendErrors.ts for user-friendly error display."
+        },
+        {
+          "path": "frontend/src/pages/CommunitiesPage.tsx",
+          "operation": "modify",
+          "description": "Verify the Pages tab properly displays newly created pages after query invalidation and refetch. Ensure the pages query is properly configured to refetch when the cache is invalidated."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Remove or suppress all raw actor error messages currently displayed in the UI and replace them with user-friendly error messages using backendErrors.ts",
+      "acceptanceCriteria": [
+        "No raw actor, canister, or principal error strings are visible to end users",
+        "All backend errors are translated through backendErrors.ts to user-friendly messages",
+        "Error states are shown as dismissible notifications or inline form messages"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Audit all mutation hooks and ensure every mutation's onError callback uses formatBackendError from backendErrors.ts to translate raw errors. Remove any direct error.message displays. Ensure formatted error messages are stored in a way that components can display them as user-friendly notifications or inline messages. Consider adding a global error state or using React Query's error handling to pass formatted errors to the UI."
+        },
+        {
+          "path": "frontend/src/components/CreatePostCard.tsx",
+          "operation": "modify",
+          "description": "Replace any raw error message displays with user-friendly messages formatted by backendErrors.ts. Show errors as dismissible toast notifications or inline form errors. Remove any technical error strings (actor, canister, principal IDs) from user-visible areas."
+        },
+        {
+          "path": "frontend/src/components/QuickPostBar.tsx",
+          "operation": "modify",
+          "description": "Ensure error handling uses backendErrors.ts to format all backend errors. Display errors as user-friendly toast notifications or inline messages. Remove raw technical error strings from UI."
+        },
+        {
+          "path": "frontend/src/components/CreateGroupPostModal.tsx",
+          "operation": "modify",
+          "description": "Replace raw error displays with formatted error messages from backendErrors.ts. Show errors as dismissible notifications or inline form feedback."
+        },
+        {
+          "path": "frontend/src/pages/CreatePollPage.tsx",
+          "operation": "modify",
+          "description": "Ensure all error handling uses backendErrors.ts for formatting. Display errors as user-friendly messages (toast notifications or inline form errors). Remove raw canister/actor error strings."
+        },
+        {
+          "path": "frontend/src/pages/CreateGroupPage.tsx",
+          "operation": "modify",
+          "description": "Replace raw error message displays with formatted messages from backendErrors.ts. Show errors as dismissible notifications or inline form feedback."
+        },
+        {
+          "path": "frontend/src/components/CreateGroupModal.tsx",
+          "operation": "modify",
+          "description": "Ensure error handling uses backendErrors.ts to format backend errors. Display errors as user-friendly toast notifications or inline messages within the modal."
+        },
+        {
+          "path": "frontend/src/pages/CreatePagePage.tsx",
+          "operation": "modify",
+          "description": "Replace raw error displays with formatted error messages from backendErrors.ts. Show errors as user-friendly notifications or inline form errors."
+        },
+        {
+          "path": "frontend/src/pages/HomePage.tsx",
+          "operation": "modify",
+          "description": "Ensure any error states in the post feed use backendErrors.ts for formatting. Display errors as user-friendly messages rather than raw technical strings."
+        },
+        {
+          "path": "frontend/src/pages/PollsPage.tsx",
+          "operation": "modify",
+          "description": "Ensure error handling for polls query uses backendErrors.ts. Display user-friendly error messages instead of raw backend errors."
+        },
+        {
+          "path": "frontend/src/pages/GroupsPage.tsx",
+          "operation": "modify",
+          "description": "Ensure error handling for groups query uses backendErrors.ts. Display user-friendly error messages instead of raw technical errors."
+        },
+        {
+          "path": "frontend/src/pages/PagesPage.tsx",
+          "operation": "modify",
+          "description": "Ensure error handling for pages query uses backendErrors.ts. Display user-friendly error messages instead of raw backend errors."
+        },
+        {
+          "path": "frontend/src/pages/CommunitiesPage.tsx",
+          "operation": "modify",
+          "description": "Ensure error states for both groups and pages queries use backendErrors.ts for formatting. Display user-friendly error messages in both tabs."
         }
       ]
     }

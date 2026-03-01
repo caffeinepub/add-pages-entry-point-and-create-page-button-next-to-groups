@@ -1,10 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Image, Video, X, Loader2, Save } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2, Save, Clock, User } from 'lucide-react';
 import type { Post } from '../types';
-import { ExternalBlob } from '../backend';
 import { useUpdatePost } from '../hooks/useQueries';
-import { getBackendErrorMessage } from '../utils/backendErrors';
 import { toast } from 'sonner';
 
 interface EditPostModalProps {
@@ -13,41 +19,26 @@ interface EditPostModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+function timeAgo(timestamp: bigint | number): string {
+  const now = Date.now();
+  const postTime = Number(timestamp) / 1_000_000;
+  const diff = Math.floor((now - postTime) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
 export default function EditPostModal({ post, open, onOpenChange }: EditPostModalProps) {
   const [text, setText] = useState('');
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
-
   const updatePost = useUpdatePost();
 
+  // Pre-fill with current post text when modal opens
   useEffect(() => {
     if (post && open) {
-      setText(post.content.text || '');
-      setMediaFile(null);
-      setMediaPreview(null);
-      setMediaType(null);
-      setUploadProgress(0);
+      setText(post.content.text ?? '');
     }
   }, [post, open]);
-
-  const handleMediaSelect = (file: File, type: 'image' | 'video') => {
-    setMediaFile(file);
-    setMediaType(type);
-    setMediaPreview(URL.createObjectURL(file));
-  };
-
-  const clearMedia = () => {
-    setMediaFile(null);
-    setMediaPreview(null);
-    setMediaType(null);
-    setUploadProgress(0);
-    if (imageInputRef.current) imageInputRef.current.value = '';
-    if (videoInputRef.current) videoInputRef.current.value = '';
-  };
 
   const handleClose = () => {
     if (updatePost.isPending) return;
@@ -57,162 +48,123 @@ export default function EditPostModal({ post, open, onOpenChange }: EditPostModa
   const handleSave = async () => {
     if (!post) return;
     const trimmed = text.trim();
-    if (!trimmed && !mediaFile) {
-      toast.error('Post must have text or media');
+    if (!trimmed) {
+      toast.error('Post text cannot be empty');
       return;
     }
 
     try {
-      let imageBlob: ExternalBlob | null = null;
-      let videoBlob: ExternalBlob | null = null;
-
-      if (mediaFile && mediaType === 'image') {
-        const bytes = new Uint8Array(await mediaFile.arrayBuffer());
-        imageBlob = ExternalBlob.fromBytes(bytes).withUploadProgress((pct) =>
-          setUploadProgress(pct)
-        );
-      } else if (mediaFile && mediaType === 'video') {
-        const bytes = new Uint8Array(await mediaFile.arrayBuffer());
-        videoBlob = ExternalBlob.fromBytes(bytes).withUploadProgress((pct) =>
-          setUploadProgress(pct)
-        );
-      }
-
+      // Text-only edit — preserve existing media from the post
       const content = {
-        text: trimmed || null,
-        image: imageBlob,
-        video: videoBlob,
+        text: trimmed,
+        image: post.content.image ?? null,
+        video: post.content.video ?? null,
       };
 
       await updatePost.mutateAsync({ postId: post.id, content });
-      toast.success('Post updated!');
       onOpenChange(false);
-    } catch (err) {
-      toast.error(getBackendErrorMessage(err));
+    } catch {
+      // error handled by mutation's onError
     }
   };
 
-  // Show existing media from post if no new file selected
-  const existingImageUrl =
-    !mediaFile && post?.content.image
-      ? (post.content.image as any).getDirectURL?.()
-      : null;
-  const existingVideoUrl =
-    !mediaFile && post?.content.video
-      ? (post.content.video as any).getDirectURL?.()
-      : null;
+  if (!post) return null;
+
+  const authorDisplay = post.author.toString();
+  const shortAuthor = `${authorDisplay.slice(0, 8)}...${authorDisplay.slice(-4)}`;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
-      <DialogContent className="max-w-lg rounded-2xl">
+      <DialogContent className="max-w-lg w-full rounded-2xl mx-auto animate-in fade-in-0 zoom-in-95 duration-200">
         <DialogHeader>
-          <DialogTitle>Edit Post</DialogTitle>
+          <DialogTitle className="text-base font-semibold">Edit Post</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="What's on your mind?"
-            className="w-full bg-muted/50 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[100px]"
-            disabled={updatePost.isPending}
-          />
 
-          {/* Existing media */}
-          {existingImageUrl && !mediaPreview && (
-            <div className="relative rounded-xl overflow-hidden">
-              <img src={existingImageUrl} alt="Current" className="w-full max-h-48 object-cover" />
-              <p className="absolute bottom-2 left-2 text-xs text-white bg-black/50 px-2 py-0.5 rounded">
-                Current image — upload new to replace
-              </p>
+        <div className="space-y-4 py-1">
+          {/* Read-only author & timestamp info */}
+          <div className="flex items-center gap-4 px-3 py-2.5 bg-muted/40 rounded-xl border border-border/50">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <User className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="font-mono">{shortAuthor}</span>
             </div>
-          )}
-          {existingVideoUrl && !mediaPreview && (
-            <div className="relative rounded-xl overflow-hidden">
-              <video src={existingVideoUrl} controls className="w-full max-h-48" />
+            <div className="flex items-center gap-2 text-xs text-muted-foreground ml-auto">
+              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{timeAgo(post.timestamp)}</span>
             </div>
-          )}
-
-          {/* New media preview */}
-          {mediaPreview && (
-            <div className="relative rounded-xl overflow-hidden">
-              {mediaType === 'image' ? (
-                <img src={mediaPreview} alt="New preview" className="w-full max-h-48 object-cover" />
-              ) : (
-                <video src={mediaPreview} controls className="w-full max-h-48" />
-              )}
-              <button
-                onClick={clearMedia}
-                className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1"
-              >
-                <X className="w-4 h-4" />
-              </button>
-              {updatePost.isPending && uploadProgress > 0 && uploadProgress < 100 && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
-                  <div
-                    className="h-full bg-primary transition-all"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2">
-              <input
-                ref={imageInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleMediaSelect(f, 'image');
-                }}
-              />
-              <input
-                ref={videoInputRef}
-                type="file"
-                accept="video/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleMediaSelect(f, 'video');
-                }}
-              />
-              <button
-                onClick={() => imageInputRef.current?.click()}
-                disabled={updatePost.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50"
-              >
-                <Image className="w-4 h-4" />
-                Photo
-              </button>
-              <button
-                onClick={() => videoInputRef.current?.click()}
-                disabled={updatePost.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50"
-              >
-                <Video className="w-4 h-4" />
-                Video
-              </button>
-            </div>
-            <button
-              onClick={handleSave}
-              disabled={(!text.trim() && !mediaFile) || updatePost.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50"
-            >
-              {updatePost.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" /> Save
-                </>
-              )}
-            </button>
           </div>
+
+          {/* Editable text content */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Content
+            </label>
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="What's on your mind?"
+              className="min-h-[120px] resize-none text-sm rounded-xl focus:ring-2 focus:ring-primary/30"
+              disabled={updatePost.isPending}
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground">
+              Only text content can be edited. Media attachments are preserved.
+            </p>
+          </div>
+
+          {/* Show existing media as read-only preview */}
+          {post.content.image && (
+            <div className="relative rounded-xl overflow-hidden border border-border/50">
+              <img
+                src={(post.content.image as any).getDirectURL?.() ?? ''}
+                alt="Attached media"
+                className="w-full max-h-40 object-cover"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-3 py-1.5">
+                <p className="text-xs text-white/80">Image attachment (cannot be changed)</p>
+              </div>
+            </div>
+          )}
+          {post.content.video && (
+            <div className="relative rounded-xl overflow-hidden border border-border/50">
+              <video
+                src={(post.content.video as any).getDirectURL?.() ?? ''}
+                className="w-full max-h-40"
+                muted
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-3 py-1.5">
+                <p className="text-xs text-white/80">Video attachment (cannot be changed)</p>
+              </div>
+            </div>
+          )}
         </div>
+
+        <DialogFooter className="gap-2 pt-2">
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            disabled={updatePost.isPending}
+            className="min-h-[44px]"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={!text.trim() || updatePost.isPending}
+            className="min-h-[44px] gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {updatePost.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                Save Changes
+              </>
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

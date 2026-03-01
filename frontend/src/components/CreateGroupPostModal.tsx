@@ -1,61 +1,79 @@
-import React, { useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Image, X, Loader2, Send } from 'lucide-react';
-import { useCreatePost } from '../hooks/useQueries';
-import { ExternalBlob } from '../backend';
-import { getBackendErrorMessage } from '../utils/backendErrors';
-import { toast } from 'sonner';
+import React, { useState, useRef } from "react";
+import { X, Image, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useCreatePost } from "../hooks/useQueries";
+import { useActor } from "../hooks/useActor";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { ExternalBlob, PostType, MediaContent } from "../backend";
+import { formatBackendError } from "../utils/backendErrors";
 
 interface CreateGroupPostModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  groupId: bigint | number;
+  onClose: () => void;
+  groupId: number;
 }
 
 export default function CreateGroupPostModal({
   open,
-  onOpenChange,
+  onClose,
   groupId,
 }: CreateGroupPostModalProps) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
+  const { actor, isFetching: actorFetching } = useActor();
+  const { identity } = useInternetIdentity();
   const createPost = useCreatePost();
+
+  const isActorReady = !!actor && !actorFetching;
+  const isAuthenticated = !!identity;
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
-  const clearImage = () => {
+  const clearMedia = () => {
     setImageFile(null);
     setImagePreview(null);
     setUploadProgress(0);
-    if (imageInputRef.current) imageInputRef.current.value = '';
+    if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
   const handleClose = () => {
-    if (createPost.isPending) return;
-    onOpenChange(false);
-    setText('');
-    clearImage();
+    setText("");
+    clearMedia();
+    onClose();
   };
 
   const handleSubmit = async () => {
-    const trimmed = text.trim();
-    if (!trimmed && !imageFile) {
-      toast.error('Please add some text or an image');
+    if (!text.trim() && !imageFile) {
+      toast.error("Please add some content to your post.");
+      return;
+    }
+    if (!isAuthenticated) {
+      toast.error("Please log in to create a post.");
+      return;
+    }
+    if (!isActorReady) {
+      toast.error("Still connecting to the network. Please try again.");
       return;
     }
 
     try {
-      let imageBlob: ExternalBlob | null = null;
+      let imageBlob: ExternalBlob | undefined;
+
       if (imageFile) {
         const bytes = new Uint8Array(await imageFile.arrayBuffer());
         imageBlob = ExternalBlob.fromBytes(bytes).withUploadProgress((pct) =>
@@ -63,35 +81,45 @@ export default function CreateGroupPostModal({
         );
       }
 
-      const content = {
-        text: trimmed || null,
+      const content: MediaContent = {
+        text: text.trim() || undefined,
         image: imageBlob,
-        video: null,
+        video: undefined,
       };
 
-      await createPost.mutateAsync({ content, groupId: Number(groupId) });
-      toast.success('Post created!');
-      onOpenChange(false);
-      setText('');
-      clearImage();
-    } catch (err) {
-      toast.error(getBackendErrorMessage(err));
+      await createPost.mutateAsync({
+        content,
+        groupId: BigInt(groupId),
+        postType: PostType.regular,
+      });
+
+      handleClose();
+    } catch (error: unknown) {
+      const msg = formatBackendError(error);
+      toast.error(msg);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
-      <DialogContent className="max-w-lg rounded-2xl">
+      <DialogContent className="max-w-lg mx-auto">
         <DialogHeader>
           <DialogTitle>Create Group Post</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
+          {!isActorReady && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
+              <Loader2 size={14} className="animate-spin" />
+              <span>Connecting to network…</span>
+            </div>
+          )}
+
           <textarea
+            className="w-full bg-muted/40 rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[100px]"
+            placeholder="Share something with the group…"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Share something with the group..."
-            className="w-full bg-muted/50 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[100px]"
             disabled={createPost.isPending}
           />
 
@@ -100,26 +128,27 @@ export default function CreateGroupPostModal({
               <img
                 src={imagePreview}
                 alt="Preview"
-                className="w-full max-h-48 object-cover"
+                className="w-full max-h-56 object-cover rounded-xl"
               />
               <button
-                onClick={clearImage}
-                className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1"
+                onClick={clearMedia}
+                className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
               >
-                <X className="w-4 h-4" />
+                <X size={14} />
               </button>
-              {createPost.isPending && uploadProgress > 0 && uploadProgress < 100 && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
-                  <div
-                    className="h-full bg-primary transition-all"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-              )}
             </div>
           )}
 
-          <div className="flex items-center justify-between">
+          {createPost.isPending && uploadProgress > 0 && uploadProgress < 100 && (
+            <div className="w-full bg-muted rounded-full h-1.5">
+              <div
+                className="bg-primary h-1.5 rounded-full transition-all"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-1">
             <div className="flex gap-2">
               <input
                 ref={imageInputRef}
@@ -130,30 +159,41 @@ export default function CreateGroupPostModal({
               />
               <button
                 onClick={() => imageInputRef.current?.click()}
-                disabled={createPost.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50"
+                disabled={createPost.isPending || !isActorReady}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1.5 rounded-lg hover:bg-muted disabled:opacity-50"
               >
-                <Image className="w-4 h-4" />
-                Photo
+                <Image size={16} />
+                <span>Photo</span>
               </button>
             </div>
-            <button
-              onClick={handleSubmit}
-              disabled={(!text.trim() && !imageFile) || createPost.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50"
-            >
-              {createPost.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Posting...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  Post
-                </>
-              )}
-            </button>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleClose}
+                disabled={createPost.isPending}
+                className="text-sm text-muted-foreground px-4 py-2 rounded-xl hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={
+                  createPost.isPending ||
+                  !isActorReady ||
+                  (!text.trim() && !imageFile)
+                }
+                className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {createPost.isPending ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Posting…</span>
+                  </>
+                ) : (
+                  <span>Post</span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </DialogContent>

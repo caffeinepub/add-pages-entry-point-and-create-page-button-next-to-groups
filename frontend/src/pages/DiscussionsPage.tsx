@@ -4,6 +4,7 @@ import PostCard from '../components/PostCard';
 import CreatePostCard from '../components/CreatePostCard';
 import { Loader2, MessageSquare } from 'lucide-react';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
+import type { Post } from '../types';
 
 export default function DiscussionsPage() {
   const { data: posts = [], isLoading, refetch } = useGetPosts();
@@ -33,7 +34,7 @@ export default function DiscussionsPage() {
             </p>
           </div>
         ) : (
-          posts.map((post) => (
+          (posts as Post[]).filter(Boolean).map((post) => (
             <PostCard key={post.id.toString()} post={post} />
           ))
         )}

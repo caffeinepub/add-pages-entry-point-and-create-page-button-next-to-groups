@@ -10,6 +10,71 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface CreateGroupArgs {
+  'creator' : Principal,
+  'adminIds' : Array<Principal>,
+  'name' : string,
+  'createdAt' : Time,
+  'description' : string,
+  'coverImage' : [] | [ExternalBlob],
+}
+export type ExternalBlob = Uint8Array;
+export interface Group {
+  'id' : bigint,
+  'creator' : Principal,
+  'name' : string,
+  'createdAt' : Time,
+  'description' : string,
+  'coverImage' : [] | [ExternalBlob],
+}
+export interface MediaContent {
+  'video' : [] | [ExternalBlob],
+  'text' : [] | [string],
+  'image' : [] | [ExternalBlob],
+}
+export interface Page {
+  'owner' : Principal,
+  'profileImage' : [] | [ExternalBlob],
+  'pageName' : string,
+  'description' : string,
+  'creationTime' : Time,
+  'isPrivate' : boolean,
+  'category' : string,
+}
+export interface Poll {
+  'id' : bigint,
+  'creator' : Principal,
+  'question' : string,
+  'votes' : Array<bigint>,
+  'isPublic' : boolean,
+  'options' : Array<string>,
+}
+export interface Post {
+  'id' : bigint,
+  'postType' : PostType,
+  'seriousLikeCount' : bigint,
+  'likeCount' : bigint,
+  'content' : MediaContent,
+  'author' : Principal,
+  'groupId' : [] | [bigint],
+  'isEdited' : boolean,
+  'editHistory' : Array<PostEdit>,
+  'timestamp' : Time,
+}
+export interface PostEdit { 'content' : MediaContent, 'timestamp' : Time }
+export type PostType = { 'regular' : null } |
+  { 'newsFeed' : null };
+export type Time = bigint;
+export interface UserProfile {
+  'bio' : string,
+  'name' : string,
+  'profilePhoto' : [] | [ExternalBlob],
+  'badges' : Array<string>,
+  'civicTokenBalance' : bigint,
+  'verifiedStatus' : boolean,
+  'followerCount' : bigint,
+  'location' : string,
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -42,8 +107,22 @@ export interface _SERVICE {
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'createGroup' : ActorMethod<[CreateGroupArgs], bigint>,
+  'createPage' : ActorMethod<
+    [string, string, string, [] | [ExternalBlob], boolean],
+    bigint
+  >,
+  'createPoll' : ActorMethod<[string, Array<string>, boolean], bigint>,
+  'createPost' : ActorMethod<[MediaContent, [] | [bigint], PostType], bigint>,
+  'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getGroup' : ActorMethod<[bigint], [] | [Group]>,
+  'getPage' : ActorMethod<[bigint], [] | [Page]>,
+  'getPoll' : ActorMethod<[bigint], [] | [Poll]>,
+  'getPost' : ActorMethod<[bigint], [] | [Post]>,
+  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

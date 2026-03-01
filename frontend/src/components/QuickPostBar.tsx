@@ -1,220 +1,250 @@
-import React, { useState, useRef } from 'react';
-import { Image, Video, Send, X, Loader2, PenSquare } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useCreatePost } from '../hooks/useQueries';
-import { ExternalBlob } from '../backend';
-import { getBackendErrorMessage } from '../utils/backendErrors';
-import { toast } from 'sonner';
+import React, { useState, useRef } from "react";
+import { Image, Video, X, Loader2, Send } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useCreatePost } from "../hooks/useQueries";
+import { useActor } from "../hooks/useActor";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { ExternalBlob, PostType, MediaContent } from "../backend";
+import { formatBackendError } from "../utils/backendErrors";
 
-interface QuickPostBarProps {
-  groupId?: bigint | number | null;
-  onPostCreated?: () => void;
-}
-
-export default function QuickPostBar({ groupId = null, onPostCreated }: QuickPostBarProps) {
-  const { identity } = useInternetIdentity();
+export default function QuickPostBar() {
   const [open, setOpen] = useState(false);
-  const [text, setText] = useState('');
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+  const [text, setText] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
+  const { actor, isFetching: actorFetching } = useActor();
+  const { identity } = useInternetIdentity();
   const createPost = useCreatePost();
 
-  const handleOpen = () => {
-    if (!identity) {
-      toast.error('Please log in to create a post');
-      return;
-    }
-    setOpen(true);
+  const isActorReady = !!actor && !actorFetching;
+  const isAuthenticated = !!identity;
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setVideoFile(null);
+    setVideoPreview(null);
+    setImagePreview(URL.createObjectURL(file));
   };
 
-  const handleClose = () => {
-    if (createPost.isPending) return;
-    setOpen(false);
-    setText('');
-    clearMedia();
-  };
-
-  const handleMediaSelect = (file: File, type: 'image' | 'video') => {
-    setMediaFile(file);
-    setMediaType(type);
-    setMediaPreview(URL.createObjectURL(file));
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setVideoFile(file);
+    setImageFile(null);
+    setImagePreview(null);
+    setVideoPreview(URL.createObjectURL(file));
   };
 
   const clearMedia = () => {
-    setMediaFile(null);
-    setMediaPreview(null);
-    setMediaType(null);
+    setImageFile(null);
+    setVideoFile(null);
+    setImagePreview(null);
+    setVideoPreview(null);
     setUploadProgress(0);
-    if (imageInputRef.current) imageInputRef.current.value = '';
-    if (videoInputRef.current) videoInputRef.current.value = '';
+    if (imageInputRef.current) imageInputRef.current.value = "";
+    if (videoInputRef.current) videoInputRef.current.value = "";
+  };
+
+  const resetForm = () => {
+    setText("");
+    clearMedia();
+  };
+
+  const handleClose = () => {
+    resetForm();
+    setOpen(false);
   };
 
   const handleSubmit = async () => {
-    if (!identity) {
-      toast.error('Please log in to create a post');
+    if (!text.trim() && !imageFile && !videoFile) {
+      toast.error("Please add some content to your post.");
       return;
     }
-    const trimmed = text.trim();
-    if (!trimmed && !mediaFile) {
-      toast.error('Please add some text or media');
+    if (!isAuthenticated) {
+      toast.error("Please log in to create a post.");
+      return;
+    }
+    if (!isActorReady) {
+      toast.error("Still connecting to the network. Please try again.");
       return;
     }
 
     try {
-      let imageBlob: ExternalBlob | null = null;
-      let videoBlob: ExternalBlob | null = null;
+      let imageBlob: ExternalBlob | undefined;
+      let videoBlob: ExternalBlob | undefined;
 
-      if (mediaFile && mediaType === 'image') {
-        const bytes = new Uint8Array(await mediaFile.arrayBuffer());
+      if (imageFile) {
+        const bytes = new Uint8Array(await imageFile.arrayBuffer());
         imageBlob = ExternalBlob.fromBytes(bytes).withUploadProgress((pct) =>
           setUploadProgress(pct)
         );
-      } else if (mediaFile && mediaType === 'video') {
-        const bytes = new Uint8Array(await mediaFile.arrayBuffer());
+      }
+
+      if (videoFile) {
+        const bytes = new Uint8Array(await videoFile.arrayBuffer());
         videoBlob = ExternalBlob.fromBytes(bytes).withUploadProgress((pct) =>
           setUploadProgress(pct)
         );
       }
 
-      const content = {
-        text: trimmed || null,
+      const content: MediaContent = {
+        text: text.trim() || undefined,
         image: imageBlob,
         video: videoBlob,
       };
 
-      const numGroupId =
-        groupId !== null && groupId !== undefined ? Number(groupId) : undefined;
+      await createPost.mutateAsync({
+        content,
+        groupId: null,
+        postType: PostType.regular,
+      });
 
-      await createPost.mutateAsync({ content, groupId: numGroupId });
-
-      setOpen(false);
-      setText('');
-      clearMedia();
-      onPostCreated?.();
-    } catch (err) {
-      toast.error(getBackendErrorMessage(err));
+      handleClose();
+      window.dispatchEvent(new CustomEvent("postCreated"));
+    } catch (error: unknown) {
+      const msg = formatBackendError(error);
+      toast.error(msg);
     }
   };
-
-  const canSubmit = (text.trim().length > 0 || !!mediaFile) && !createPost.isPending;
 
   return (
     <>
       {/* Trigger bar */}
       <button
-        onClick={handleOpen}
-        className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3 mb-4 shadow-sm hover:bg-muted/50 transition-all text-left"
+        onClick={() => {
+          if (!isAuthenticated) {
+            toast.error("Please log in to create a post.");
+            return;
+          }
+          setOpen(true);
+        }}
+        className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3 text-muted-foreground text-sm hover:bg-muted/50 transition-colors text-left"
       >
-        <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
-          {identity ? identity.getPrincipal().toString().slice(0, 2).toUpperCase() : '?'}
+        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+          <Send size={14} className="text-primary" />
         </div>
-        <span className="text-muted-foreground text-sm flex-1">What's on your mind?</span>
-        <PenSquare className="w-4 h-4 text-muted-foreground" />
+        <span>What's on your mind?</span>
       </button>
 
-      {/* Dialog */}
-      <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
-        <DialogContent className="max-w-lg mx-auto rounded-2xl">
+      <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true); }}>
+        <DialogContent className="max-w-lg mx-auto">
           <DialogHeader>
             <DialogTitle>Create Post</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3">
             <textarea
+              className="w-full bg-muted/40 rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[100px]"
+              placeholder="What's on your mind?"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Share your civic thoughts..."
-              className="w-full bg-muted/50 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[100px]"
               disabled={createPost.isPending}
               autoFocus
             />
 
-            {/* Media Preview */}
-            {mediaPreview && (
+            {(imagePreview || videoPreview) && (
               <div className="relative rounded-xl overflow-hidden">
-                {mediaType === 'image' ? (
-                  <img src={mediaPreview} alt="Preview" className="w-full max-h-48 object-cover" />
-                ) : (
-                  <video src={mediaPreview} controls className="w-full max-h-48" />
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full max-h-56 object-cover rounded-xl"
+                  />
+                )}
+                {videoPreview && (
+                  <video
+                    src={videoPreview}
+                    className="w-full max-h-56 rounded-xl"
+                    controls
+                  />
                 )}
                 <button
                   onClick={clearMedia}
-                  className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1"
+                  className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
                 >
-                  <X className="w-4 h-4" />
+                  <X size={14} />
                 </button>
-                {createPost.isPending && uploadProgress > 0 && uploadProgress < 100 && (
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
-                    <div
-                      className="h-full bg-primary transition-all"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
-                )}
               </div>
             )}
 
-            {/* Media buttons */}
-            <div className="flex items-center justify-between">
+            {createPost.isPending && uploadProgress > 0 && uploadProgress < 100 && (
+              <div className="w-full bg-muted rounded-full h-1.5">
+                <div
+                  className="bg-primary h-1.5 rounded-full transition-all"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-1">
               <div className="flex gap-2">
                 <input
                   ref={imageInputRef}
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleMediaSelect(f, 'image');
-                  }}
+                  onChange={handleImageChange}
                 />
                 <input
                   ref={videoInputRef}
                   type="file"
                   accept="video/*"
                   className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleMediaSelect(f, 'video');
-                  }}
+                  onChange={handleVideoChange}
                 />
                 <button
                   onClick={() => imageInputRef.current?.click()}
-                  disabled={createPost.isPending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50"
+                  disabled={createPost.isPending || !isActorReady}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1.5 rounded-lg hover:bg-muted disabled:opacity-50"
                 >
-                  <Image className="w-4 h-4" />
-                  Photo
+                  <Image size={16} />
+                  <span>Photo</span>
                 </button>
                 <button
                   onClick={() => videoInputRef.current?.click()}
-                  disabled={createPost.isPending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-50"
+                  disabled={createPost.isPending || !isActorReady}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1.5 rounded-lg hover:bg-muted disabled:opacity-50"
                 >
-                  <Video className="w-4 h-4" />
-                  Video
+                  <Video size={16} />
+                  <span>Video</span>
                 </button>
               </div>
+
               <button
                 onClick={handleSubmit}
-                disabled={!canSubmit}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={
+                  createPost.isPending ||
+                  !isActorReady ||
+                  (!text.trim() && !imageFile && !videoFile)
+                }
+                className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {createPost.isPending ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Posting...
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Posting…</span>
+                  </>
+                ) : !isActorReady ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Connecting…</span>
                   </>
                 ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    Post
-                  </>
+                  <span>Post</span>
                 )}
               </button>
             </div>

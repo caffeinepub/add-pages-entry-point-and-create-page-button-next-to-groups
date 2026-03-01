@@ -33,7 +33,9 @@ export default function PageDetailPage() {
     );
   }
 
-  const imageUrl = page.profileImage ? page.profileImage.getDirectURL() : null;
+  const imageUrl = page.profileImage
+    ? (page.profileImage as any).getDirectURL?.() ?? null
+    : null;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -77,11 +79,11 @@ export default function PageDetailPage() {
             <p className="text-sm text-muted-foreground leading-relaxed">{page.description}</p>
           )}
 
-          <div className="pt-2 border-t border-border">
+          <div className="pt-2 border-t border-border/50">
             <p className="text-xs text-muted-foreground">
-              Owner: {page.owner.toString().slice(0, 12)}...
+              Owner: {page.owner.toString().slice(0, 16)}...
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Created: {new Date(Number(page.creationTime) / 1_000_000).toLocaleDateString()}
             </p>
           </div>

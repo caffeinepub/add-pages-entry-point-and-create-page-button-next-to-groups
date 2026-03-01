@@ -105,7 +105,7 @@ function CommentItem({ comment, postId, allComments, depth = 0 }: CommentItemPro
     if (!editContent.trim()) return;
     try {
       await editComment.mutateAsync({
-        commentId: Number(comment.id),
+        commentId: BigInt(comment.id),
         content: editContent,
         postId,
       });
@@ -117,7 +117,7 @@ function CommentItem({ comment, postId, allComments, depth = 0 }: CommentItemPro
 
   const handleDelete = async () => {
     try {
-      await deleteComment.mutateAsync({ commentId: Number(comment.id), postId });
+      await deleteComment.mutateAsync({ commentId: BigInt(comment.id), postId });
     } catch {
       // handled by mutation
     }
@@ -127,9 +127,9 @@ function CommentItem({ comment, postId, allComments, depth = 0 }: CommentItemPro
   const handleLike = async () => {
     if (!isAuthenticated) return;
     if (isLiked) {
-      await unlikeComment.mutateAsync({ commentId: Number(comment.id), postId });
+      await unlikeComment.mutateAsync({ commentId: BigInt(comment.id), postId });
     } else {
-      await likeComment.mutateAsync({ commentId: Number(comment.id), postId });
+      await likeComment.mutateAsync({ commentId: BigInt(comment.id), postId });
     }
   };
 
@@ -139,7 +139,7 @@ function CommentItem({ comment, postId, allComments, depth = 0 }: CommentItemPro
       await addComment.mutateAsync({
         postId,
         content: replyContent,
-        parentCommentId: Number(comment.id),
+        parentCommentId: BigInt(comment.id),
       });
       setReplyContent('');
       setIsReplying(false);
@@ -286,7 +286,6 @@ function CommentItem({ comment, postId, allComments, depth = 0 }: CommentItemPro
                   <Heart className={`w-3 h-3 ${isLiked ? 'fill-current' : ''}`} />
                   {likeCount > 0 && <span>{likeCount}</span>}
                 </button>
-
                 {isAuthenticated && depth < 2 && (
                   <button
                     onClick={() => setIsReplying(!isReplying)}
@@ -299,36 +298,43 @@ function CommentItem({ comment, postId, allComments, depth = 0 }: CommentItemPro
               </div>
             )}
 
-            {/* Reply input */}
+            {/* Reply form */}
             {isReplying && (
-              <div className="mt-2 flex gap-2">
+              <div className="mt-2 space-y-2">
                 <Textarea
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
                   placeholder="Write a reply..."
-                  className="text-sm resize-none min-h-[50px] flex-1"
+                  className="text-sm resize-none min-h-[60px]"
                   rows={2}
+                  autoFocus
                 />
-                <div className="flex flex-col gap-1">
+                <div className="flex gap-2">
                   <Button
-                    size="icon"
+                    size="sm"
                     onClick={handleReply}
                     disabled={addComment.isPending || !replyContent.trim()}
-                    className="h-8 w-8"
+                    className="h-7 text-xs gap-1"
                   >
                     {addComment.isPending ? (
                       <Loader2 className="w-3 h-3 animate-spin" />
                     ) : (
-                      <Send className="w-3 h-3" />
+                      <>
+                        <Send className="w-3 h-3" />
+                        Reply
+                      </>
                     )}
                   </Button>
                   <Button
-                    size="icon"
+                    size="sm"
                     variant="outline"
-                    onClick={() => setIsReplying(false)}
-                    className="h-8 w-8 text-xs"
+                    onClick={() => {
+                      setIsReplying(false);
+                      setReplyContent('');
+                    }}
+                    className="h-7 text-xs"
                   >
-                    ✕
+                    Cancel
                   </Button>
                 </div>
               </div>
@@ -337,11 +343,11 @@ function CommentItem({ comment, postId, allComments, depth = 0 }: CommentItemPro
         </div>
 
         {/* Nested replies */}
-        {replies.length > 0 && (
+        {replies.length > 0 && depth < 2 && (
           <div className="mt-1">
             {replies.map((reply) => (
               <CommentItem
-                key={Number(reply.id)}
+                key={reply.id.toString()}
                 comment={reply}
                 postId={postId}
                 allComments={allComments}
@@ -352,15 +358,7 @@ function CommentItem({ comment, postId, allComments, depth = 0 }: CommentItemPro
         )}
       </div>
 
-      {/* Report Modal */}
-      <ReportModal
-        isOpen={reportOpen}
-        onClose={() => setReportOpen(false)}
-        targetType="comment"
-        targetId={Number(comment.id)}
-      />
-
-      {/* Delete Confirmation */}
+      {/* Delete confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -384,19 +382,26 @@ function CommentItem({ comment, postId, allComments, depth = 0 }: CommentItemPro
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Report modal */}
+      <ReportModal
+        isOpen={reportOpen}
+        onClose={() => setReportOpen(false)}
+        targetType="comment"
+        targetId={Number(comment.id)}
+      />
     </>
   );
 }
 
 export default function CommentSection({ postId }: CommentSectionProps) {
   const { identity } = useInternetIdentity();
-  const { data: comments, isLoading } = useGetComments(postId);
+  const { data: comments = [], isLoading } = useGetComments(postId);
   const addComment = useAddComment();
 
   const [newComment, setNewComment] = useState('');
-  const isAuthenticated = !!identity;
 
-  const topLevelComments = (comments ?? []).filter((c) => {
+  const topLevelComments = (comments as Comment[]).filter((c) => {
     if (c.isDeleted) return false;
     const pid = c.parentCommentId;
     if (pid === null || pid === undefined) return true;
@@ -404,63 +409,58 @@ export default function CommentSection({ postId }: CommentSectionProps) {
     return false;
   });
 
-  const handleSubmit = async () => {
-    if (!newComment.trim()) return;
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !identity) return;
     try {
-      await addComment.mutateAsync({ postId, content: newComment });
+      await addComment.mutateAsync({ postId, content: newComment.trim() });
       setNewComment('');
     } catch {
       // handled by mutation
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      handleSubmit();
-    }
-  };
-
   return (
-    <div className="px-4 py-3">
-      {/* Comment input */}
-      {isAuthenticated ? (
-        <div className="flex gap-2 mb-4">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">
-            {identity ? getInitials(identity.getPrincipal().toString()) : '?'}
+    <div className="mt-3 border-t border-border/50 pt-3">
+      {/* Add comment */}
+      {identity && (
+        <div className="flex gap-2 mb-3">
+          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">
+            {identity.getPrincipal().toString().slice(0, 2).toUpperCase()}
           </div>
           <div className="flex-1 flex gap-2">
-            <Textarea
+            <input
+              type="text"
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Write a comment... (Ctrl+Enter to submit)"
-              className="text-sm resize-none min-h-[60px] flex-1"
-              rows={2}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleAddComment();
+                }
+              }}
+              placeholder="Write a comment..."
+              className="flex-1 bg-muted/50 rounded-xl px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              disabled={addComment.isPending}
             />
-            <Button
-              size="icon"
-              onClick={handleSubmit}
-              disabled={addComment.isPending || !newComment.trim()}
-              className="h-10 w-10 self-end flex-shrink-0"
+            <button
+              onClick={handleAddComment}
+              disabled={!newComment.trim() || addComment.isPending}
+              className="p-1.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50"
             >
               {addComment.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Send className="w-4 h-4" />
               )}
-            </Button>
+            </button>
           </div>
         </div>
-      ) : (
-        <p className="text-sm text-muted-foreground text-center py-2 mb-3">
-          Login to add a comment
-        </p>
       )}
 
       {/* Comments list */}
       {isLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
+          {[1, 2].map((i) => (
             <div key={i} className="flex gap-2">
               <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
               <div className="flex-1 space-y-1">
@@ -471,18 +471,17 @@ export default function CommentSection({ postId }: CommentSectionProps) {
           ))}
         </div>
       ) : topLevelComments.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          No comments yet. Be the first to comment!
+        <p className="text-xs text-muted-foreground text-center py-2">
+          No comments yet. Be the first!
         </p>
       ) : (
-        <div className="space-y-1 divide-y divide-border/30">
+        <div>
           {topLevelComments.map((comment) => (
             <CommentItem
-              key={Number(comment.id)}
+              key={comment.id.toString()}
               comment={comment}
               postId={postId}
-              allComments={comments ?? []}
-              depth={0}
+              allComments={comments as Comment[]}
             />
           ))}
         </div>

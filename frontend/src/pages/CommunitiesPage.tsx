@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { Plus, Users, FileText, Loader2, ChevronRight } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { useGetGroups, useGetAllPages } from '../hooks/useQueries';
+import { useGetGroups, useGetPages } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import type { Group, Page } from '../types';
 
@@ -60,7 +60,7 @@ export default function CommunitiesPage() {
   const [showCreateMenu, setShowCreateMenu] = useState(false);
 
   const { data: groups = [], isLoading: groupsLoading } = useGetGroups();
-  const { data: pages = [], isLoading: pagesLoading } = useGetAllPages();
+  const { data: pages = [], isLoading: pagesLoading } = useGetPages();
 
   return (
     <div className="min-h-screen bg-background pb-28">

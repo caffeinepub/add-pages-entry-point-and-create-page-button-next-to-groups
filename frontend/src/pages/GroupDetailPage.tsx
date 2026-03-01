@@ -14,6 +14,7 @@ import PostCard from '../components/PostCard';
 import CreateGroupPostModal from '../components/CreateGroupPostModal';
 import { getBackendErrorMessage } from '../utils/backendErrors';
 import { toast } from 'sonner';
+import type { Post } from '../types';
 
 export default function GroupDetailPage() {
   const { groupId } = useParams({ from: '/groups/$groupId' });
@@ -21,14 +22,12 @@ export default function GroupDetailPage() {
   const { identity } = useInternetIdentity();
   const [showCreatePost, setShowCreatePost] = useState(false);
 
-  // Use number for all hooks (they accept bigint | number)
   const groupIdNum = Number(groupId);
-  const userId = identity?.getPrincipal().toString();
 
   const { data: group, isLoading: groupLoading } = useGetGroup(groupIdNum);
   const { data: members = [] } = useGetGroupMembers(groupIdNum);
   const { data: posts = [], isLoading: postsLoading } = useGetGroupPosts(groupIdNum);
-  const { data: isMember = false } = useIsUserInGroup(groupIdNum, userId);
+  const { data: isMember = false } = useIsUserInGroup(groupIdNum);
 
   const joinGroup = useJoinGroup();
   const leaveGroup = useLeaveGroup();
@@ -167,13 +166,15 @@ export default function GroupDetailPage() {
             No posts yet in this group
           </div>
         ) : (
-          posts.map((post) => <PostCard key={post.id.toString()} post={post} />)
+          (posts as Post[]).filter(Boolean).map((post) => (
+            <PostCard key={post.id.toString()} post={post} />
+          ))
         )}
       </div>
 
       <CreateGroupPostModal
         open={showCreatePost}
-        onOpenChange={setShowCreatePost}
+        onClose={() => setShowCreatePost(false)}
         groupId={groupIdNum}
       />
     </div>

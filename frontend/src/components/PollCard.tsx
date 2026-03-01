@@ -15,7 +15,8 @@ export default function PollCard({ poll }: PollCardProps) {
   const [justVoted, setJustVoted] = useState(false);
 
   const voteOnPoll = useVoteOnPoll();
-  const { data: pollResults, isLoading: resultsLoading } = useGetPollResults(Number(poll.id));
+  const pollIdNum = Number(poll.id);
+  const { data: pollResults, isLoading: resultsLoading } = useGetPollResults(pollIdNum);
   const { data: hasVoted, isLoading: hasVotedLoading } = useHasVotedOnPoll(poll.id);
 
   const isAuthenticated = !!identity;
@@ -50,7 +51,7 @@ export default function PollCard({ poll }: PollCardProps) {
     if (!isAuthenticated || alreadyVoted || isCheckingVoteStatus) return;
     setSelectedOption(optionIndex);
     try {
-      await voteOnPoll.mutateAsync({ pollId: Number(poll.id), optionIndex });
+      await voteOnPoll.mutateAsync({ pollId: BigInt(poll.id), optionIndex });
       setJustVoted(true);
     } catch {
       setSelectedOption(null);

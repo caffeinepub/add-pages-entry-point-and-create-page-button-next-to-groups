@@ -69,7 +69,7 @@ export default function ChatWindow({ otherUser }: ChatWindowProps) {
             <p className="mt-1 text-xs">Messaging feature coming soon!</p>
           </div>
         ) : (
-          messages.map((message: Message, idx: number) => (
+          (messages as Message[]).map((message: Message, idx: number) => (
             <div key={idx} className="text-sm text-muted-foreground">
               Message {idx + 1}
             </div>

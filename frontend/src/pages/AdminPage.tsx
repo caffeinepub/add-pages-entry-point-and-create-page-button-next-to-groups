@@ -96,94 +96,75 @@ interface ReportCardProps {
   isSuspending: boolean;
 }
 
-function ReportCard({
-  report,
-  onDeleteContent,
-  onSuspendUser,
-  isDeleting,
-  isSuspending,
-}: ReportCardProps) {
-  const targetTypeLabel = getTargetTypeLabel(report.targetType);
-  const reasonLabel = getReasonLabel(report.reason);
-  const statusLabel = getStatusLabel(report.status);
-  const isPost = isPostType(report.targetType);
-  const isComment = isCommentType(report.targetType);
-
+function ReportCard({ report, onDeleteContent, onSuspendUser, isDeleting, isSuspending }: ReportCardProps) {
   return (
     <Card className="mb-3">
-      <CardContent className="pt-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div
-              className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-                isPost ? 'bg-blue-100 dark:bg-blue-950' : 'bg-orange-100 dark:bg-orange-950'
-              }`}
-            >
-              {isPost ? (
-                <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              ) : (
-                <MessageSquare className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className="text-xs">
-                  {targetTypeLabel} #{Number(report.targetId)}
-                </Badge>
-                <Badge
-                  variant={statusLabel === 'New' ? 'destructive' : 'secondary'}
-                  className="text-xs"
-                >
-                  {statusLabel}
-                </Badge>
-              </div>
-              <p className="text-sm font-medium text-foreground mt-1">{reasonLabel}</p>
-              {report.details && (
-                <p className="text-xs text-muted-foreground mt-0.5 truncate">{report.details}</p>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Reporter: {report.reporter.toString().slice(0, 16)}...
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {new Date(Number(report.timestamp) / 1_000_000).toLocaleDateString()}
-              </p>
-            </div>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <Flag className="w-4 h-4 text-destructive flex-shrink-0" />
+            <span className="text-sm font-semibold text-foreground">
+              {getTargetTypeLabel(report.targetType)} Report
+            </span>
           </div>
+          <Badge variant="outline" className="text-xs">
+            {getStatusLabel(report.status)}
+          </Badge>
+        </div>
 
-          <div className="flex flex-col gap-2 flex-shrink-0">
-            {(isPost || isComment) && (
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() =>
-                  onDeleteContent(isPost ? 'post' : 'comment', Number(report.targetId))
-                }
-                disabled={isDeleting}
-                className="h-8 text-xs gap-1"
-              >
-                {isDeleting ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Trash2 className="w-3 h-3" />
-                )}
-                Delete
-              </Button>
-            )}
+        <div className="space-y-1 text-xs text-muted-foreground mb-3">
+          <p>
+            <span className="font-medium">Reason:</span> {getReasonLabel(report.reason)}
+          </p>
+          <p>
+            <span className="font-medium">Target ID:</span> {Number(report.targetId)}
+          </p>
+          {report.details && (
+            <p>
+              <span className="font-medium">Details:</span> {report.details}
+            </p>
+          )}
+          <p>
+            <span className="font-medium">Reporter:</span>{' '}
+            {report.reporter.toString().slice(0, 16)}...
+          </p>
+        </div>
+
+        <div className="flex gap-2 flex-wrap">
+          {isPostType(report.targetType) && (
             <Button
               size="sm"
-              variant="outline"
-              onClick={() => onSuspendUser(report.reporter.toString())}
-              disabled={isSuspending}
-              className="h-8 text-xs gap-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              variant="destructive"
+              onClick={() => onDeleteContent('post', Number(report.targetId))}
+              disabled={isDeleting}
+              className="h-8 text-xs gap-1"
             >
-              {isSuspending ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <UserX className="w-3 h-3" />
-              )}
-              Suspend
+              {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+              Delete Post
             </Button>
-          </div>
+          )}
+          {isCommentType(report.targetType) && (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => onDeleteContent('comment', Number(report.targetId))}
+              disabled={isDeleting}
+              className="h-8 text-xs gap-1"
+            >
+              {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <MessageSquare className="w-3 h-3" />}
+              Delete Comment
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onSuspendUser(report.reporter.toString())}
+            disabled={isSuspending}
+            className="h-8 text-xs gap-1 border-destructive/50 text-destructive hover:bg-destructive/10"
+          >
+            {isSuspending ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserX className="w-3 h-3" />}
+            Suspend User
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -194,190 +175,137 @@ export default function AdminPage() {
   const navigate = useNavigate();
   const { identity } = useInternetIdentity();
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
-  const { data: reports, isLoading: reportsLoading } = useGetReports();
-  const suspendUser = useSuspendUser();
+  const { data: reports = [], isLoading: reportsLoading } = useGetReports();
   const deleteContent = useDeleteReportedContent();
+  const suspendUser = useSuspendUser();
 
-  const [suspendTarget, setSuspendTarget] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{
-    type: 'post' | 'comment';
-    id: number;
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'delete' | 'suspend';
+    id?: number;
+    contentType?: 'post' | 'comment';
+    principal?: string;
   } | null>(null);
 
-  const isAuthenticated = !!identity;
-
-  if (!isAuthenticated) {
+  if (!identity) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-sm text-center">
-          <CardContent className="pt-8 pb-6">
-            <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-foreground mb-2">
-              Authentication Required
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Please log in to access the admin panel.
-            </p>
-            <Button className="mt-4" onClick={() => navigate({ to: '/' })}>
-              Go Home
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
+        <Shield className="w-16 h-16 text-muted-foreground" />
+        <p className="text-muted-foreground text-center">Please log in to access the admin panel.</p>
       </div>
     );
   }
 
   if (adminLoading) {
     return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="max-w-2xl mx-auto space-y-4">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-        </div>
+      <div className="flex justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-sm text-center">
-          <CardContent className="pt-8 pb-6">
-            <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-foreground mb-2">Access Denied</h2>
-            <p className="text-sm text-muted-foreground">
-              You do not have admin privileges to access this panel.
-            </p>
-            <Button className="mt-4" onClick={() => navigate({ to: '/' })}>
-              Go Home
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
+        <AlertTriangle className="w-16 h-16 text-destructive" />
+        <p className="text-foreground font-semibold text-center">Access Denied</p>
+        <p className="text-muted-foreground text-sm text-center">
+          You do not have admin privileges.
+        </p>
+        <Button onClick={() => navigate({ to: '/' })}>Go Home</Button>
       </div>
     );
   }
 
-  const allReports = reports ?? [];
-  const postReports = allReports.filter((r) => isPostType(r.targetType));
-  const commentReports = allReports.filter((r) => isCommentType(r.targetType));
-  const profileReports = allReports.filter(
-    (r) => !isPostType(r.targetType) && !isCommentType(r.targetType)
-  );
-
   const handleDeleteContent = (type: 'post' | 'comment', id: number) => {
-    setDeleteTarget({ type, id });
+    setConfirmAction({ type: 'delete', id, contentType: type });
   };
 
   const handleSuspendUser = (principal: string) => {
-    setSuspendTarget(principal);
+    setConfirmAction({ type: 'suspend', principal });
   };
 
-  const confirmDelete = async () => {
-    if (!deleteTarget) return;
-    await deleteContent.mutateAsync(deleteTarget);
-    setDeleteTarget(null);
+  const handleConfirm = async () => {
+    if (!confirmAction) return;
+    try {
+      if (confirmAction.type === 'delete' && confirmAction.id !== undefined) {
+        await deleteContent.mutateAsync(BigInt(confirmAction.id));
+      } else if (confirmAction.type === 'suspend' && confirmAction.principal) {
+        await suspendUser.mutateAsync(confirmAction.principal);
+      }
+    } catch {
+      // handled by mutation
+    }
+    setConfirmAction(null);
   };
 
-  const confirmSuspend = async () => {
-    if (!suspendTarget) return;
-    await suspendUser.mutateAsync(suspendTarget);
-    setSuspendTarget(null);
-  };
+  const postReports = (reports as Report[]).filter((r) => isPostType(r.targetType));
+  const commentReports = (reports as Report[]).filter((r) => isCommentType(r.targetType));
+  const profileReports = (reports as Report[]).filter(
+    (r) => !isPostType(r.targetType) && !isCommentType(r.targetType)
+  );
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate({ to: '/' })}
-            className="h-9 w-9 rounded-full"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-primary" />
-            <h1 className="text-lg font-bold text-foreground">Admin Panel</h1>
-          </div>
-          <Badge variant="secondary" className="ml-auto">
-            {allReports.length} Reports
-          </Badge>
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-4 py-3 flex items-center gap-3">
+        <button
+          onClick={() => navigate({ to: '/' })}
+          className="p-2 rounded-full hover:bg-muted transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div className="flex items-center gap-2">
+          <Shield className="w-5 h-5 text-primary" />
+          <h1 className="text-lg font-bold text-foreground">Admin Panel</h1>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-4">
+      <div className="px-4 py-4 max-w-lg mx-auto">
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <Card>
-            <CardContent className="pt-3 pb-3 text-center">
-              <p className="text-2xl font-bold text-foreground">{postReports.length}</p>
-              <p className="text-xs text-muted-foreground">Post Reports</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-3 pb-3 text-center">
-              <p className="text-2xl font-bold text-foreground">{commentReports.length}</p>
-              <p className="text-xs text-muted-foreground">Comment Reports</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-3 pb-3 text-center">
-              <p className="text-2xl font-bold text-foreground">{profileReports.length}</p>
-              <p className="text-xs text-muted-foreground">Profile Reports</p>
-            </CardContent>
-          </Card>
+          <div className="bg-card border border-border rounded-2xl p-3 text-center">
+            <p className="text-xl font-bold text-foreground">{(reports as Report[]).length}</p>
+            <p className="text-xs text-muted-foreground">Total Reports</p>
+          </div>
+          <div className="bg-card border border-border rounded-2xl p-3 text-center">
+            <p className="text-xl font-bold text-foreground">{postReports.length}</p>
+            <p className="text-xs text-muted-foreground">Post Reports</p>
+          </div>
+          <div className="bg-card border border-border rounded-2xl p-3 text-center">
+            <p className="text-xl font-bold text-foreground">{commentReports.length}</p>
+            <p className="text-xs text-muted-foreground">Comment Reports</p>
+          </div>
         </div>
 
         {/* Reports Tabs */}
-        <Tabs defaultValue="all">
+        <Tabs defaultValue="posts">
           <TabsList className="w-full mb-4">
-            <TabsTrigger value="all" className="flex-1">
-              All ({allReports.length})
-            </TabsTrigger>
             <TabsTrigger value="posts" className="flex-1">
+              <FileText className="w-3.5 h-3.5 mr-1" />
               Posts ({postReports.length})
             </TabsTrigger>
             <TabsTrigger value="comments" className="flex-1">
+              <MessageSquare className="w-3.5 h-3.5 mr-1" />
               Comments ({commentReports.length})
+            </TabsTrigger>
+            <TabsTrigger value="profiles" className="flex-1">
+              <Flag className="w-3.5 h-3.5 mr-1" />
+              Other ({profileReports.length})
             </TabsTrigger>
           </TabsList>
 
           {reportsLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-28 w-full rounded-xl" />
+                <Skeleton key={i} className="h-32 rounded-2xl" />
               ))}
             </div>
           ) : (
             <>
-              <TabsContent value="all">
-                {allReports.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Flag className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground">No reports yet</p>
-                  </div>
-                ) : (
-                  allReports.map((report) => (
-                    <ReportCard
-                      key={Number(report.id)}
-                      report={report}
-                      onDeleteContent={handleDeleteContent}
-                      onSuspendUser={handleSuspendUser}
-                      isDeleting={deleteContent.isPending}
-                      isSuspending={suspendUser.isPending}
-                    />
-                  ))
-                )}
-              </TabsContent>
-
               <TabsContent value="posts">
                 {postReports.length === 0 ? (
-                  <div className="text-center py-12">
-                    <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground">No post reports</p>
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    No post reports
                   </div>
                 ) : (
                   postReports.map((report) => (
@@ -395,12 +323,30 @@ export default function AdminPage() {
 
               <TabsContent value="comments">
                 {commentReports.length === 0 ? (
-                  <div className="text-center py-12">
-                    <MessageSquare className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground">No comment reports</p>
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    No comment reports
                   </div>
                 ) : (
                   commentReports.map((report) => (
+                    <ReportCard
+                      key={Number(report.id)}
+                      report={report}
+                      onDeleteContent={handleDeleteContent}
+                      onSuspendUser={handleSuspendUser}
+                      isDeleting={deleteContent.isPending}
+                      isSuspending={suspendUser.isPending}
+                    />
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="profiles">
+                {profileReports.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    No other reports
+                  </div>
+                ) : (
+                  profileReports.map((report) => (
                     <ReportCard
                       key={Number(report.id)}
                       report={report}
@@ -417,60 +363,31 @@ export default function AdminPage() {
         </Tabs>
       </div>
 
-      {/* Delete Confirmation */}
-      <AlertDialog
-        open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-      >
+      {/* Confirm Dialog */}
+      <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Reported Content</AlertDialogTitle>
+            <AlertDialogTitle>
+              {confirmAction?.type === 'delete' ? 'Delete Content' : 'Suspend User'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this {deleteTarget?.type}? This action cannot be
-              undone.
+              {confirmAction?.type === 'delete'
+                ? `Are you sure you want to delete this ${confirmAction.contentType}? This action cannot be undone.`
+                : 'Are you sure you want to suspend this user? They will lose access to the platform.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmDelete}
+              onClick={handleConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteContent.isPending ? (
+              {deleteContent.isPending || suspendUser.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
+              ) : confirmAction?.type === 'delete' ? (
                 'Delete'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Suspend Confirmation */}
-      <AlertDialog
-        open={!!suspendTarget}
-        onOpenChange={(open) => !open && setSuspendTarget(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Suspend User</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to suspend this user? They will not be able to create posts
-              or comments.
-              <br />
-              <span className="font-mono text-xs mt-1 block">{suspendTarget}</span>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmSuspend}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {suspendUser.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                'Suspend User'
+                'Suspend'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -1,12 +1,12 @@
 import React from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { useGetAllPages } from '../hooks/useQueries';
+import { useGetPages } from '../hooks/useQueries';
 import { FileText, Plus, Loader2 } from 'lucide-react';
 import type { Page } from '../types';
 
 export default function PagesPage() {
   const navigate = useNavigate();
-  const { data: pages = [], isLoading } = useGetAllPages();
+  const { data: pages = [], isLoading } = useGetPages();
 
   return (
     <div className="min-h-screen bg-background pb-24">

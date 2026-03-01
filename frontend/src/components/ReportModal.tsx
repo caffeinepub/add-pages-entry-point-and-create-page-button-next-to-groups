@@ -7,13 +7,17 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useSubmitReport } from '../hooks/useQueries';
-// Use regular import (not import type) so enums can be used as values
-import { ReportReason, ReportTargetType } from '../types';
-import { Loader2, Flag } from 'lucide-react';
+import { Loader2, Flag, CheckCircle2 } from 'lucide-react';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -22,12 +26,12 @@ interface ReportModalProps {
   targetId: number;
 }
 
-const REPORT_REASONS: { value: string; label: string }[] = [
+const REPORT_REASONS = [
   { value: 'spam', label: 'Spam' },
-  { value: 'misinformation', label: 'Fake News / Misinformation' },
-  { value: 'inappropriateContent', label: 'Abusive Content' },
-  { value: 'harassment', label: 'Political Misinformation / Harassment' },
-  { value: 'other', label: 'Other' },
+  { value: 'hateSpeech', label: 'Hate Speech' },
+  { value: 'misinformation', label: 'Misinformation' },
+  { value: 'harassment', label: 'Harassment' },
+  { value: 'inappropriateContent', label: 'Inappropriate Content' },
 ];
 
 export default function ReportModal({
@@ -37,123 +41,150 @@ export default function ReportModal({
   targetId,
 }: ReportModalProps) {
   const [selectedReason, setSelectedReason] = useState<string>('');
-  const [details, setDetails] = useState('');
+  const [description, setDescription] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [duplicateError, setDuplicateError] = useState(false);
   const submitReport = useSubmitReport();
-
-  const getTargetTypeBackend = (): ReportTargetType => {
-    if (targetType === 'post') return ReportTargetType.post;
-    if (targetType === 'comment') return ReportTargetType.comment;
-    return ReportTargetType.profile;
-  };
-
-  const getReasonBackend = (): ReportReason => {
-    switch (selectedReason) {
-      case 'spam':
-        return ReportReason.spam;
-      case 'misinformation':
-        return ReportReason.misinformation;
-      case 'inappropriateContent':
-        return ReportReason.inappropriateContent;
-      case 'harassment':
-        return ReportReason.harassment;
-      default:
-        return ReportReason.other;
-    }
-  };
 
   const handleSubmit = async () => {
     if (!selectedReason) return;
+    setDuplicateError(false);
     try {
       await submitReport.mutateAsync({
-        targetType: getTargetTypeBackend(),
         targetId,
-        reason: getReasonBackend(),
-        details,
+        reason: selectedReason,
+        details: description.trim(),
       });
-      setSelectedReason('');
-      setDetails('');
-      onClose();
-    } catch {
-      // error handled by mutation
+      setSubmitted(true);
+      // Auto-close after 2 seconds
+      setTimeout(() => {
+        handleClose();
+      }, 2000);
+    } catch (err) {
+      const msg = String(err);
+      if (msg.includes('already reported') || msg.includes('Duplicate report')) {
+        setDuplicateError(true);
+      }
+      // Other errors are handled by the mutation's onError toast
     }
   };
 
   const handleClose = () => {
+    if (submitReport.isPending) return;
     setSelectedReason('');
-    setDetails('');
+    setDescription('');
+    setSubmitted(false);
+    setDuplicateError(false);
     onClose();
   };
 
+  const targetLabel =
+    targetType === 'post' ? 'Post' : targetType === 'comment' ? 'Comment' : 'Profile';
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-sm mx-auto">
+      <DialogContent className="max-w-sm w-full mx-auto rounded-2xl animate-in fade-in-0 zoom-in-95 duration-200">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Flag className="w-5 h-5 text-destructive" />
-            Report{' '}
-            {targetType === 'post'
-              ? 'Post'
-              : targetType === 'comment'
-              ? 'Comment'
-              : 'Profile'}
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Flag className="w-4 h-4 text-destructive flex-shrink-0" />
+            Report {targetLabel}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
-          <p className="text-sm text-muted-foreground">
-            Why are you reporting this {targetType}? Your report will be reviewed by our
-            admin team.
-          </p>
-
-          <RadioGroup value={selectedReason} onValueChange={setSelectedReason}>
-            <div className="space-y-2">
-              {REPORT_REASONS.map((reason) => (
-                <div
-                  key={reason.value}
-                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <RadioGroupItem value={reason.value} id={`reason-${reason.value}`} />
-                  <Label
-                    htmlFor={`reason-${reason.value}`}
-                    className="text-sm font-medium cursor-pointer flex-1"
-                  >
-                    {reason.label}
-                  </Label>
-                </div>
-              ))}
+        {submitted ? (
+          /* Success state */
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <div className="w-14 h-14 rounded-full bg-green-100 dark:bg-green-950/40 flex items-center justify-center">
+              <CheckCircle2 className="w-7 h-7 text-green-600 dark:text-green-400" />
             </div>
-          </RadioGroup>
+            <div>
+              <p className="font-semibold text-foreground">Report submitted successfully</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Our admin team will review your report shortly.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-4 py-1">
+              <p className="text-sm text-muted-foreground">
+                Why are you reporting this {targetType}? Your report will be reviewed by our
+                admin team.
+              </p>
 
-          {selectedReason === 'other' && (
-            <Textarea
-              placeholder="Please provide additional details..."
-              value={details}
-              onChange={(e) => setDetails(e.target.value)}
-              className="text-sm resize-none"
-              rows={3}
-            />
-          )}
-        </div>
+              {/* Reason dropdown */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Reason <span className="text-destructive">*</span>
+                </Label>
+                <Select value={selectedReason} onValueChange={setSelectedReason}>
+                  <SelectTrigger className="w-full min-h-[44px] rounded-xl">
+                    <SelectValue placeholder="Select a reason..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REPORT_REASONS.map((reason) => (
+                      <SelectItem key={reason.value} value={reason.value}>
+                        {reason.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={handleClose} disabled={submitReport.isPending}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleSubmit}
-            disabled={!selectedReason || submitReport.isPending}
-          >
-            {submitReport.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              'Submit Report'
-            )}
-          </Button>
-        </DialogFooter>
+              {/* Optional description */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Additional Details{' '}
+                  <span className="text-muted-foreground/60 normal-case">(optional)</span>
+                </Label>
+                <Textarea
+                  placeholder="Provide more context about this report..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="text-sm resize-none rounded-xl min-h-[80px]"
+                  rows={3}
+                  disabled={submitReport.isPending}
+                />
+              </div>
+
+              {/* Duplicate error message */}
+              {duplicateError && (
+                <div className="flex items-start gap-2 px-3 py-2.5 bg-destructive/10 border border-destructive/20 rounded-xl">
+                  <Flag className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-destructive">
+                    You have already reported this content. Duplicate reports are not allowed.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="gap-2 pt-1">
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                disabled={submitReport.isPending}
+                className="min-h-[44px]"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleSubmit}
+                disabled={!selectedReason || submitReport.isPending}
+                className="min-h-[44px] gap-2"
+              >
+                {submitReport.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Report'
+                )}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

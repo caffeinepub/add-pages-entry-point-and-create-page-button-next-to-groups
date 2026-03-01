@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { useGetGroups, useGetAllPages } from '../hooks/useQueries';
+import { useGetGroups, useGetPages } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { Users, FileText, Plus, Loader2, ChevronRight } from 'lucide-react';
 import type { Group, Page } from '../types';
@@ -11,7 +11,7 @@ export default function GroupsAndPagesPage() {
   const [activeTab, setActiveTab] = useState<'groups' | 'pages'>('groups');
 
   const { data: groups = [], isLoading: groupsLoading } = useGetGroups();
-  const { data: pages = [], isLoading: pagesLoading } = useGetAllPages();
+  const { data: pages = [], isLoading: pagesLoading } = useGetPages();
 
   return (
     <div className="min-h-screen bg-background pb-24">

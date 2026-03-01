@@ -1,134 +1,218 @@
-import { useState } from 'react';
-import { useCreateGroup } from '../hooks/useQueries';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { ExternalBlob } from '../backend';
-import { toast } from 'sonner';
+import React, { useState, useRef } from "react";
+import { X, Loader2, Upload } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useCreateGroup } from "../hooks/useQueries";
+import { useActor } from "../hooks/useActor";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { ExternalBlob } from "../backend";
+import { formatBackendError } from "../utils/backendErrors";
 
 interface CreateGroupModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
 }
 
-export default function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [coverImage, setCoverImage] = useState<File | null>(null);
+export default function CreateGroupModal({ open, onClose }: CreateGroupModalProps) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const { actor, isFetching: actorFetching } = useActor();
+  const { identity } = useInternetIdentity();
   const createGroup = useCreateGroup();
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setCoverImage(e.target.files[0]);
-    }
+  const isActorReady = !!actor && !actorFetching;
+  const isAuthenticated = !!identity;
+
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const clearCover = () => {
+    setCoverFile(null);
+    setCoverPreview(null);
+    setUploadProgress(0);
+    if (coverInputRef.current) coverInputRef.current.value = "";
+  };
 
-    if (!name.trim() || !description.trim()) {
-      toast.error('Please fill in all required fields');
+  const handleClose = () => {
+    setName("");
+    setDescription("");
+    clearCover();
+    onClose();
+  };
+
+  const handleSubmit = async () => {
+    if (!name.trim()) {
+      toast.error("Please enter a group name.");
+      return;
+    }
+    if (!description.trim()) {
+      toast.error("Please enter a group description.");
+      return;
+    }
+    if (!isAuthenticated) {
+      toast.error("Please log in to create a group.");
+      return;
+    }
+    if (!isActorReady) {
+      toast.error("Still connecting to the network. Please try again.");
       return;
     }
 
     try {
-      let coverImageBlob: ExternalBlob | null = null;
+      let coverBlob: ExternalBlob | undefined;
 
-      if (coverImage) {
-        const arrayBuffer = await coverImage.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        coverImageBlob = ExternalBlob.fromBytes(uint8Array).withUploadProgress((percentage) => {
-          setUploadProgress(percentage);
-        });
+      if (coverFile) {
+        const bytes = new Uint8Array(await coverFile.arrayBuffer());
+        coverBlob = ExternalBlob.fromBytes(bytes).withUploadProgress((pct) =>
+          setUploadProgress(pct)
+        );
       }
 
-      await createGroup.mutateAsync({ name, description, coverImage: coverImageBlob });
-      
-      setName('');
-      setDescription('');
-      setCoverImage(null);
-      setUploadProgress(0);
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to create group:', error);
+      await createGroup.mutateAsync({
+        name: name.trim(),
+        description: description.trim(),
+        coverImage: coverBlob,
+      });
+
+      handleClose();
+    } catch (error: unknown) {
+      const msg = formatBackendError(error);
+      toast.error(msg);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+      <DialogContent className="max-w-lg mx-auto">
         <DialogHeader>
-          <DialogTitle>Create New Group</DialogTitle>
-          <DialogDescription>
-            Create a political group or party for like-minded individuals
-          </DialogDescription>
+          <DialogTitle>Create Group</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Group Name *</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Progressive Alliance"
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="description">Description *</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe your group's mission and values..."
-              rows={4}
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="coverImage">Cover Image (optional)</Label>
-            <Input
-              id="coverImage"
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-            />
-            {coverImage && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Selected: {coverImage.name}
-              </p>
-            )}
-          </div>
-          {uploadProgress > 0 && uploadProgress < 100 && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Uploading image...</span>
-                <span>{uploadProgress}%</span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-2">
-                <div
-                  className="bg-[oklch(0.45_0.12_250)] h-2 rounded-full transition-all"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
+
+        <div className="space-y-4">
+          {!isActorReady && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
+              <Loader2 size={14} className="animate-spin" />
+              <span>Connecting to network…</span>
             </div>
           )}
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={createGroup.isPending || (uploadProgress > 0 && uploadProgress < 100)}
-              className="bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)]"
-            >
-              {createGroup.isPending ? 'Creating...' : 'Create Group'}
-            </Button>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Group Name <span className="text-destructive">*</span>
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter group name"
+              disabled={createGroup.isPending}
+              className="w-full bg-muted/40 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+            />
           </div>
-        </form>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Description <span className="text-destructive">*</span>
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What is this group about?"
+              disabled={createGroup.isPending}
+              rows={3}
+              className="w-full bg-muted/40 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              Cover Image (optional)
+            </label>
+            {coverPreview ? (
+              <div className="relative rounded-xl overflow-hidden">
+                <img
+                  src={coverPreview}
+                  alt="Cover preview"
+                  className="w-full h-32 object-cover rounded-xl"
+                />
+                <button
+                  onClick={clearCover}
+                  className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => coverInputRef.current?.click()}
+                disabled={createGroup.isPending}
+                className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl py-6 text-sm text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors disabled:opacity-50"
+              >
+                <Upload size={16} />
+                <span>Upload cover image</span>
+              </button>
+            )}
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleCoverChange}
+            />
+          </div>
+
+          {createGroup.isPending && uploadProgress > 0 && uploadProgress < 100 && (
+            <div className="w-full bg-muted rounded-full h-1.5">
+              <div
+                className="bg-primary h-1.5 rounded-full transition-all"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={handleClose}
+              disabled={createGroup.isPending}
+              className="flex-1 text-sm text-muted-foreground px-4 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={
+                createGroup.isPending ||
+                !isActorReady ||
+                !name.trim() ||
+                !description.trim()
+              }
+              className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {createGroup.isPending ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Creating…</span>
+                </>
+              ) : (
+                <span>Create Group</span>
+              )}
+            </button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
