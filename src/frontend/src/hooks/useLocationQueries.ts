@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { useActor } from './useActor';
+import { useQuery } from "@tanstack/react-query";
+import { useActor } from "./useActor";
 
 /**
  * React Query hooks for hierarchical location fetching
@@ -10,9 +10,9 @@ export function useGetCountries() {
   const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<string[]>({
-    queryKey: ['countries'],
+    queryKey: ["countries"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
+      if (!actor) throw new Error("Actor not available");
       return (actor as any).getCountries();
     },
     enabled: !!actor && !actorFetching,
@@ -24,7 +24,7 @@ export function useGetStatesByCountry(countryCode: string | null) {
   const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<string[]>({
-    queryKey: ['states', countryCode],
+    queryKey: ["states", countryCode],
     queryFn: async () => {
       if (!actor || !countryCode) return [];
       return (actor as any).getStatesByCountry(countryCode);
@@ -38,7 +38,7 @@ export function useGetDistrictsByState(state: string | null) {
   const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<string[]>({
-    queryKey: ['districts', state],
+    queryKey: ["districts", state],
     queryFn: async () => {
       if (!actor || !state) return [];
       return (actor as any).getDistrictsByState(state);
@@ -48,17 +48,16 @@ export function useGetDistrictsByState(state: string | null) {
   });
 }
 
-// Placeholder hooks for future backend implementation
-export function useGetMPConstituenciesByDistrict(district: string | null) {
+export function useGetMPConstituencies(district: string | null) {
   const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<string[]>({
-    queryKey: ['mpConstituencies', district],
+    queryKey: ["mpConstituencies", district],
     queryFn: async () => {
       if (!actor || !district) return [];
-      // Backend function not yet implemented
-      if (typeof (actor as any).getMPConstituenciesByDistrict === 'function') {
-        return (actor as any).getMPConstituenciesByDistrict(district);
+      // Check if backend method exists
+      if (typeof (actor as any).getMPConstituencies === "function") {
+        return (actor as any).getMPConstituencies(district);
       }
       return [];
     },
@@ -67,33 +66,34 @@ export function useGetMPConstituenciesByDistrict(district: string | null) {
   });
 }
 
-export function useGetMLAConstituenciesByMP(mpConstituency: string | null) {
+export function useGetMLAConstituencies(district: string | null) {
   const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<string[]>({
-    queryKey: ['mlaConstituencies', mpConstituency],
+    queryKey: ["mlaConstituencies", district],
     queryFn: async () => {
-      if (!actor || !mpConstituency) return [];
-      // Backend function not yet implemented
-      if (typeof (actor as any).getMLAConstituenciesByMP === 'function') {
-        return (actor as any).getMLAConstituenciesByMP(mpConstituency);
+      if (!actor || !district) return [];
+      // Check if backend method exists
+      if (typeof (actor as any).getMLAConstituencies === "function") {
+        return (actor as any).getMLAConstituencies(district);
       }
       return [];
     },
-    enabled: !!actor && !actorFetching && !!mpConstituency,
+    enabled: !!actor && !actorFetching && !!district,
     staleTime: 1000 * 60 * 30,
   });
 }
 
+// Placeholder hooks for future backend implementation
 export function useGetMandalsByMLA(mlaConstituency: string | null) {
   const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<string[]>({
-    queryKey: ['mandals', mlaConstituency],
+    queryKey: ["mandals", mlaConstituency],
     queryFn: async () => {
       if (!actor || !mlaConstituency) return [];
       // Backend function not yet implemented
-      if (typeof (actor as any).getMandalsByMLA === 'function') {
+      if (typeof (actor as any).getMandalsByMLA === "function") {
         return (actor as any).getMandalsByMLA(mlaConstituency);
       }
       return [];
@@ -107,11 +107,11 @@ export function useGetVillagesByMandal(mandal: string | null) {
   const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<string[]>({
-    queryKey: ['villages', mandal],
+    queryKey: ["villages", mandal],
     queryFn: async () => {
       if (!actor || !mandal) return [];
       // Backend function not yet implemented
-      if (typeof (actor as any).getVillagesByMandal === 'function') {
+      if (typeof (actor as any).getVillagesByMandal === "function") {
         return (actor as any).getVillagesByMandal(mandal);
       }
       return [];

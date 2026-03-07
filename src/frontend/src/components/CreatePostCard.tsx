@@ -1,327 +1,241 @@
-import { useState, useRef } from 'react';
-import { useCreatePost } from '../hooks/useQueries';
-import { useActor } from '../hooks/useActor';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { ExternalBlob } from '../backend';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { PenLine, Image as ImageIcon, Video as VideoIcon, X } from 'lucide-react';
-import { toast } from 'sonner';
-import { formatBackendError } from '../utils/backendErrors';
+import { Image, Loader2, Video, X } from "lucide-react";
+import type React from "react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { ExternalBlob, type MediaContent, PostType } from "../backend";
+import { useActor } from "../hooks/useActor";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useCreatePost } from "../hooks/useQueries";
+import { formatBackendError } from "../utils/backendErrors";
 
-export default function CreatePostCard() {
-  const [content, setContent] = useState('');
+interface CreatePostCardProps {
+  onPostCreated?: () => void;
+  groupId?: bigint;
+}
+
+export default function CreatePostCard({
+  onPostCreated,
+  groupId,
+}: CreatePostCardProps) {
+  const [text, setText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const createPost = useCreatePost();
+
   const { actor, isFetching: actorFetching } = useActor();
   const { identity } = useInternetIdentity();
+  const createPost = useCreatePost();
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const isActorReady = !!actor && !actorFetching;
+  const isAuthenticated = !!identity;
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
-      return;
-    }
-
     setImageFile(file);
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('video/')) {
-      toast.error('Please select a video file');
-      return;
-    }
-
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('Video size must be less than 50MB');
-      return;
-    }
-
-    setVideoFile(file);
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setVideoPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-    setUploadProgress(0);
-    if (imageInputRef.current) {
-      imageInputRef.current.value = '';
-    }
-  };
-
-  const handleRemoveVideo = () => {
     setVideoFile(null);
     setVideoPreview(null);
-    setUploadProgress(0);
-    if (videoInputRef.current) {
-      videoInputRef.current.value = '';
-    }
+    const url = URL.createObjectURL(file);
+    setImagePreview(url);
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setVideoFile(file);
+    setImageFile(null);
+    setImagePreview(null);
+    const url = URL.createObjectURL(file);
+    setVideoPreview(url);
+  };
 
-    // Guard against concurrent submissions
-    if (createPost.isPending) {
+  const clearMedia = () => {
+    setImageFile(null);
+    setVideoFile(null);
+    setImagePreview(null);
+    setVideoPreview(null);
+    setUploadProgress(0);
+    if (imageInputRef.current) imageInputRef.current.value = "";
+    if (videoInputRef.current) videoInputRef.current.value = "";
+  };
+
+  const handleSubmit = async () => {
+    if (!text.trim() && !imageFile && !videoFile) {
+      toast.error("Please add some content to your post.");
       return;
     }
-
-    // Check authentication
-    if (!identity) {
-      toast.error('Please log in to create a post');
+    if (!isAuthenticated) {
+      toast.error("Please log in to create a post.");
       return;
     }
-
-    // Check actor availability
-    if (!actor || actorFetching) {
-      toast.error('System is initializing. Please wait a moment and try again');
-      return;
-    }
-
-    // Validate content
-    const trimmedText = content.trim();
-    if (!trimmedText && !imageFile && !videoFile) {
-      toast.error('Please add text, an image, or a video to your post');
-      return;
-    }
-
-    // Check for whitespace-only text
-    if (trimmedText.length === 0 && content.length > 0) {
-      toast.error('Post cannot contain only whitespace');
+    if (!isActorReady) {
+      toast.error("Still connecting to the network. Please try again.");
       return;
     }
 
     try {
-      let imageBlob: ExternalBlob | undefined = undefined;
-      let videoBlob: ExternalBlob | undefined = undefined;
+      let imageBlob: ExternalBlob | undefined;
+      let videoBlob: ExternalBlob | undefined;
 
       if (imageFile) {
-        const arrayBuffer = await imageFile.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        imageBlob = ExternalBlob.fromBytes(uint8Array).withUploadProgress((percentage) => {
-          setUploadProgress(percentage);
-        });
+        const bytes = new Uint8Array(await imageFile.arrayBuffer());
+        imageBlob = ExternalBlob.fromBytes(bytes).withUploadProgress((pct) =>
+          setUploadProgress(pct),
+        );
       }
 
       if (videoFile) {
-        const arrayBuffer = await videoFile.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        videoBlob = ExternalBlob.fromBytes(uint8Array).withUploadProgress((percentage) => {
-          setUploadProgress(percentage);
-        });
+        const bytes = new Uint8Array(await videoFile.arrayBuffer());
+        videoBlob = ExternalBlob.fromBytes(bytes).withUploadProgress((pct) =>
+          setUploadProgress(pct),
+        );
       }
 
+      const content: MediaContent = {
+        text: text.trim() || undefined,
+        image: imageBlob,
+        video: videoBlob,
+      };
+
       await createPost.mutateAsync({
-        content: {
-          text: trimmedText || undefined,
-          image: imageBlob,
-          video: videoBlob,
-        },
-        groupId: null,
+        content,
+        groupId: groupId ?? null,
+        postType: PostType.regular,
       });
-      
-      // Reset form
-      setContent('');
-      setImageFile(null);
-      setImagePreview(null);
-      setVideoFile(null);
-      setVideoPreview(null);
-      setUploadProgress(0);
-      if (imageInputRef.current) {
-        imageInputRef.current.value = '';
-      }
-      if (videoInputRef.current) {
-        videoInputRef.current.value = '';
-      }
+
+      setText("");
+      clearMedia();
+      onPostCreated?.();
+      // Dispatch event for pages listening to post creation
+      window.dispatchEvent(new CustomEvent("postCreated"));
     } catch (error: unknown) {
-      console.error('Error creating post:', error);
-      const errorMessage = formatBackendError(error);
-      toast.error(errorMessage);
+      const msg = formatBackendError(error);
+      toast.error(msg);
     }
   };
 
-  const isUploading = createPost.isPending && uploadProgress > 0 && uploadProgress < 100;
-  const trimmedText = content.trim();
-  const hasContent = trimmedText || imageFile || videoFile;
-  const isSubmitDisabled = !hasContent || createPost.isPending || actorFetching || !actor || !identity;
+  if (!isAuthenticated) {
+    return (
+      <div className="bg-card border border-border rounded-2xl p-4 text-center text-muted-foreground text-sm">
+        Log in to create a post
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white border border-border rounded-lg p-4 shadow-sm">
-      {!identity && (
-        <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            Please log in to create a post
-          </p>
+    <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+      <textarea
+        className="w-full bg-muted/40 rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[80px]"
+        placeholder="What's on your mind?"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        disabled={createPost.isPending}
+      />
+
+      {/* Media preview */}
+      {(imagePreview || videoPreview) && (
+        <div className="relative rounded-xl overflow-hidden">
+          {imagePreview && (
+            <img
+              src={imagePreview}
+              alt="Preview"
+              className="w-full max-h-64 object-cover rounded-xl"
+            />
+          )}
+          {videoPreview && (
+            <video
+              src={videoPreview}
+              className="w-full max-h-64 rounded-xl"
+              controls
+            >
+              <track kind="captions" />
+            </video>
+          )}
+          <button
+            type="button"
+            onClick={clearMedia}
+            className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
-      
-      <form onSubmit={handleSubmit}>
-        <div className="flex items-start gap-3">
-          <PenLine className="h-5 w-5 text-muted-foreground mt-2" />
-          <div className="flex-1">
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="What's on your mind? Share your thoughts on civic matters..."
-              rows={3}
-              className="resize-none"
-              disabled={!identity}
-            />
 
-            {/* Inline Media Preview Area */}
-            {(imagePreview || videoPreview) && (
-              <div className="mt-3 space-y-2">
-                {imagePreview && (
-                  <div className="relative w-full rounded-lg overflow-hidden border border-border bg-muted">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full h-auto max-h-96 object-contain"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 h-8 w-8 shadow-lg"
-                      onClick={handleRemoveImage}
-                      type="button"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-
-                {videoPreview && (
-                  <div className="relative w-full rounded-lg overflow-hidden border border-border bg-black">
-                    <video
-                      src={videoPreview}
-                      controls
-                      className="w-full h-auto max-h-96"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 h-8 w-8 shadow-lg"
-                      onClick={handleRemoveVideo}
-                      type="button"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {isUploading && (
-              <div className="mt-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>Uploading: {uploadProgress}%</span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-2 mt-1">
-                  <div
-                    className="bg-[oklch(0.45_0.12_250)] h-2 rounded-full transition-all"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+      {/* Upload progress */}
+      {createPost.isPending && uploadProgress > 0 && uploadProgress < 100 && (
+        <div className="w-full bg-muted rounded-full h-1.5">
+          <div
+            className="bg-primary h-1.5 rounded-full transition-all"
+            style={{ width: `${uploadProgress}%` }}
+          />
         </div>
+      )}
 
-        <div className="flex justify-between items-center mt-3">
-          <div className="flex gap-2">
-            <input
-              ref={imageInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              className="hidden"
-              id="image-upload"
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-              onClick={() => imageInputRef.current?.click()}
-              type="button"
-              disabled={createPost.isPending || !identity}
-            >
-              <ImageIcon className="h-4 w-4" />
-              {imageFile ? 'Change Image' : 'Add Image'}
-            </Button>
-
-            <input
-              ref={videoInputRef}
-              type="file"
-              accept="video/*"
-              onChange={handleVideoSelect}
-              className="hidden"
-              id="video-upload"
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-              onClick={() => videoInputRef.current?.click()}
-              type="button"
-              disabled={createPost.isPending || !identity}
-            >
-              <VideoIcon className="h-4 w-4" />
-              {videoFile ? 'Change Video' : 'Add Video'}
-            </Button>
-          </div>
-
-          <Button
-            type="submit"
-            disabled={isSubmitDisabled}
-            className="bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)] disabled:opacity-50 disabled:cursor-not-allowed"
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageChange}
+          />
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/*"
+            className="hidden"
+            onChange={handleVideoChange}
+          />
+          <button
+            type="button"
+            onClick={() => imageInputRef.current?.click()}
+            disabled={createPost.isPending || !isActorReady}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1.5 rounded-lg hover:bg-muted disabled:opacity-50"
           >
-            {createPost.isPending ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Posting...
-              </>
-            ) : actorFetching ? (
-              'Initializing...'
-            ) : !identity ? (
-              'Log in to Post'
-            ) : !hasContent ? (
-              'Add Content'
-            ) : (
-              'Create Post'
-            )}
-          </Button>
+            <Image size={16} />
+            <span>Photo</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => videoInputRef.current?.click()}
+            disabled={createPost.isPending || !isActorReady}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1.5 rounded-lg hover:bg-muted disabled:opacity-50"
+          >
+            <Video size={16} />
+            <span>Video</span>
+          </button>
         </div>
-      </form>
+
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={
+            createPost.isPending ||
+            !isActorReady ||
+            (!text.trim() && !imageFile && !videoFile)
+          }
+          className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {createPost.isPending ? (
+            <>
+              <Loader2 size={14} className="animate-spin" />
+              <span>Posting…</span>
+            </>
+          ) : !isActorReady ? (
+            <>
+              <Loader2 size={14} className="animate-spin" />
+              <span>Connecting…</span>
+            </>
+          ) : (
+            <span>Post</span>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

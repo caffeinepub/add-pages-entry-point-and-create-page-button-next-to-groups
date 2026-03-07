@@ -1,21 +1,21 @@
-import { useState } from 'react';
-import { Principal } from '@dfinity/principal';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { MessageSquare } from 'lucide-react';
-import ChatWindow from '../components/ChatWindow';
-import { toast } from 'sonner';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Principal } from "@dfinity/principal";
+import { MessageSquare } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import ChatWindow from "../components/ChatWindow";
 
 export default function MessagesPage() {
-  const [principalInput, setPrincipalInput] = useState('');
+  const [principalInput, setPrincipalInput] = useState("");
   const [selectedUser, setSelectedUser] = useState<Principal | null>(null);
 
   const handleStartConversation = () => {
     try {
       const principal = Principal.fromText(principalInput);
       setSelectedUser(principal);
-    } catch (error) {
-      toast.error('Invalid Principal ID. Please check and try again.');
+    } catch (_error) {
+      toast.error("Invalid Principal ID. Please check and try again.");
     }
   };
 
@@ -36,7 +36,7 @@ export default function MessagesPage() {
               <p className="text-muted-foreground mb-6 max-w-md">
                 Enter a user's Principal ID to start messaging
               </p>
-              
+
               <div className="w-full max-w-md space-y-3">
                 <Input
                   value={principalInput}

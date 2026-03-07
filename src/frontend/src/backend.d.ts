@@ -15,6 +15,39 @@ export class ExternalBlob {
     withUploadProgress(onProgress: (percentage: number) => void): ExternalBlob;
 }
 export type Time = bigint;
+export interface CreateGroupArgs {
+    creator: Principal;
+    adminIds: Array<Principal>;
+    name: string;
+    createdAt: Time;
+    description: string;
+    coverImage?: ExternalBlob;
+}
+export interface Group {
+    id: bigint;
+    creator: Principal;
+    name: string;
+    createdAt: Time;
+    description: string;
+    coverImage?: ExternalBlob;
+}
+export interface Poll {
+    id: bigint;
+    creator: Principal;
+    question: string;
+    votes: Array<bigint>;
+    isPublic: boolean;
+    options: Array<string>;
+}
+export interface Page {
+    owner: Principal;
+    profileImage?: ExternalBlob;
+    pageName: string;
+    description: string;
+    creationTime: Time;
+    isPrivate: boolean;
+    category: string;
+}
 export interface Post {
     id: bigint;
     postType: PostType;
@@ -23,6 +56,8 @@ export interface Post {
     content: MediaContent;
     author: Principal;
     groupId?: bigint;
+    isEdited: boolean;
+    editHistory: Array<PostEdit>;
     timestamp: Time;
 }
 export interface MediaContent {
@@ -30,11 +65,16 @@ export interface MediaContent {
     text?: string;
     image?: ExternalBlob;
 }
+export interface PostEdit {
+    content: MediaContent;
+    timestamp: Time;
+}
 export interface UserProfile {
     bio: string;
     name: string;
     profilePhoto?: ExternalBlob;
     badges: Array<string>;
+    civicTokenBalance: bigint;
     verifiedStatus: boolean;
     followerCount: bigint;
     location: string;
@@ -50,17 +90,16 @@ export enum UserRole {
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    createNewsFeedPost(content: MediaContent): Promise<bigint>;
-    createPost(content: MediaContent, groupId: bigint | null): Promise<bigint>;
-    deletePost(postId: bigint): Promise<void>;
-    getAllPosts(): Promise<Array<Post>>;
+    createGroup(args: CreateGroupArgs): Promise<bigint>;
+    createPage(pageName: string, category: string, description: string, profileImage: ExternalBlob | null, isPrivate: boolean): Promise<bigint>;
+    createPoll(question: string, options: Array<string>, isPublic: boolean): Promise<bigint>;
+    createPost(content: MediaContent, groupId: bigint | null, postType: PostType): Promise<bigint>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
-    getCountries(): Promise<Array<string>>;
-    getDistrictsByState(state: string): Promise<Array<string>>;
-    getNewsFeedPosts(): Promise<Array<Post>>;
-    getStatesByCountry(_country: string): Promise<Array<string>>;
-    getUserPosts(user: Principal): Promise<Array<Post>>;
+    getGroup(groupId: bigint): Promise<Group | null>;
+    getPage(pageId: bigint): Promise<Page | null>;
+    getPoll(pollId: bigint): Promise<Poll | null>;
+    getPost(postId: bigint): Promise<Post | null>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;

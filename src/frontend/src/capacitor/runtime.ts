@@ -22,9 +22,9 @@ export function isCapacitor(): boolean {
 export function getPlatform(): string {
   try {
     const cap = (window as any).Capacitor;
-    return cap?.getPlatform?.() || 'web';
+    return cap?.getPlatform?.() || "web";
   } catch {
-    return 'web';
+    return "web";
   }
 }
 
@@ -32,12 +32,12 @@ export function getPlatform(): string {
  * Check if running on Android
  */
 export function isAndroid(): boolean {
-  return getPlatform() === 'android';
+  return getPlatform() === "android";
 }
 
 /**
  * Check if running on iOS
  */
 export function isIOS(): boolean {
-  return getPlatform() === 'ios';
+  return getPlatform() === "ios";
 }

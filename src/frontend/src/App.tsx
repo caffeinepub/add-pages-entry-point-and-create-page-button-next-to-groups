@@ -1,77 +1,60 @@
-import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet, createHashHistory } from '@tanstack/react-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from '@/components/ui/sonner';
-import { useInternetIdentity } from './hooks/useInternetIdentity';
-import { useGetCallerUserProfile } from './hooks/useQueries';
-import ProfileSetupModal from './components/ProfileSetupModal';
-import Header from './components/Header';
-import HorizontalNav from './components/HorizontalNav';
-import BottomNav from './components/BottomNav';
-import HomePage from './pages/HomePage';
-import VideoPage from './pages/VideoPage';
-import ReelPage from './pages/ReelPage';
-import EventsPage from './pages/EventsPage';
-import GroupsPage from './pages/GroupsPage';
-import GroupDetailPage from './pages/GroupDetailPage';
-import GroupsAndPagesPage from './pages/GroupsAndPagesPage';
-import PagesPage from './pages/PagesPage';
-import CreatePagePage from './pages/CreatePagePage';
-import ProfilePage from './pages/ProfilePage';
-import UserProfilePage from './pages/UserProfilePage';
-import MessagesPage from './pages/MessagesPage';
-import ExplorePage from './pages/ExplorePage';
-import TopicPage from './pages/TopicPage';
-import PollsPage from './pages/PollsPage';
-import CreatePollPage from './pages/CreatePollPage';
-import MyConstituencyPage from './pages/MyConstituencyPage';
-import DiscussionsPage from './pages/DiscussionsPage';
-import WalletPage from './pages/WalletPage';
-import { isCapacitor } from './capacitor/runtime';
-import { installInternetIdentityShim } from './capacitor/iiWindowOpenShim';
-import { useEffect } from 'react';
+import { Toaster } from "@/components/ui/sonner";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  Outlet,
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter,
+} from "@tanstack/react-router";
+import { ThemeProvider } from "next-themes";
+import React from "react";
+import { ViewProvider } from "./context/ViewContext";
+
+import BottomNav from "./components/BottomNav";
+import Header from "./components/Header";
+
+import AdminPage from "./pages/AdminPage";
+import CommunitiesPage from "./pages/CommunitiesPage";
+import CreateGroupPage from "./pages/CreateGroupPage";
+import CreatePagePage from "./pages/CreatePagePage";
+import CreatePollPage from "./pages/CreatePollPage";
+import DiscussionsPage from "./pages/DiscussionsPage";
+import EducationPage from "./pages/EducationPage";
+import EventsPage from "./pages/EventsPage";
+import ExplorePage from "./pages/ExplorePage";
+import GroupDetailPage from "./pages/GroupDetailPage";
+import HomePage from "./pages/HomePage";
+import MessagesPage from "./pages/MessagesPage";
+import MyAreaPage from "./pages/MyAreaPage";
+import MyConstituencyPage from "./pages/MyConstituencyPage";
+import PageDetailPage from "./pages/PageDetailPage";
+import PollResultsPage from "./pages/PollResultsPage";
+import PollsPage from "./pages/PollsPage";
+import ProfilePage from "./pages/ProfilePage";
+import TopicPage from "./pages/TopicPage";
+import UserProfilePage from "./pages/UserProfilePage";
+import VideoReelsPage from "./pages/VideoReelsPage";
+import WalletPage from "./pages/WalletPage";
+import WalletPointsPage from "./pages/WalletPointsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5,
+      staleTime: 1000 * 60,
       retry: 1,
-      refetchOnWindowFocus: false,
     },
   },
 });
 
 function Layout() {
-  const { identity, isInitializing } = useInternetIdentity();
-  const { data: userProfile, isLoading: profileLoading, isFetched } = useGetCallerUserProfile();
-
-  const isAuthenticated = !!identity;
-  const showProfileSetup = isAuthenticated && !profileLoading && isFetched && userProfile === null;
-
-  // Install II shim for Capacitor
-  useEffect(() => {
-    if (isCapacitor()) {
-      installInternetIdentityShim();
-    }
-  }, []);
-
-  if (isInitializing) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[oklch(0.45_0.12_250)]"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="app-container">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <HorizontalNav />
-      <main className="main-content">
+      <main className="flex-1 pb-16">
         <Outlet />
       </main>
       <BottomNav />
-      {showProfileSetup && <ProfileSetupModal />}
-      <Toaster position="top-center" />
     </div>
   );
 }
@@ -80,160 +63,194 @@ const rootRoute = createRootRoute({
   component: Layout,
 });
 
-const homeRoute = createRoute({
+const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/',
+  path: "/",
   component: HomePage,
-});
-
-const videoRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/video',
-  component: VideoPage,
-});
-
-const reelRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/reel',
-  component: ReelPage,
-});
-
-const eventsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/events',
-  component: EventsPage,
-});
-
-const groupsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/groups',
-  component: GroupsPage,
-});
-
-const groupDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/groups/$groupId',
-  component: GroupDetailPage,
-});
-
-const groupsAndPagesRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/groups-and-pages',
-  component: GroupsAndPagesPage,
-});
-
-const pagesRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/pages',
-  component: PagesPage,
-});
-
-const createPageRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/pages/create',
-  component: CreatePagePage,
-});
-
-const profileRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/profile',
-  component: ProfilePage,
-});
-
-const userProfileRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/profile/$userId',
-  component: UserProfilePage,
-});
-
-const messagesRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/messages',
-  component: MessagesPage,
-});
-
-const exploreRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/explore',
-  component: ExplorePage,
-});
-
-const topicRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/topic/$hashtag',
-  component: TopicPage,
 });
 
 const pollsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/polls',
+  path: "/polls",
   component: PollsPage,
+});
+
+const pollResultsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/poll-results",
+  component: PollResultsPage,
 });
 
 const createPollRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/polls/create',
+  path: "/create-poll",
   component: CreatePollPage,
 });
 
-const myConstituencyRoute = createRoute({
+const profileRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/myconstituency',
-  component: MyConstituencyPage,
+  path: "/profile",
+  component: ProfilePage,
+});
+
+const communitiesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/communities",
+  component: CommunitiesPage,
+});
+
+const groupDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/groups/$groupId",
+  component: GroupDetailPage,
+});
+
+const pageDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/pages/$pageId",
+  component: PageDetailPage,
+});
+
+const createGroupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/create-group",
+  component: CreateGroupPage,
+});
+
+const createPageRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/create-page",
+  component: CreatePagePage,
+});
+
+const messagesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/messages",
+  component: MessagesPage,
+});
+
+const videoReelsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/reels",
+  component: VideoReelsPage,
 });
 
 const discussionsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/discussions',
+  path: "/discussions",
   component: DiscussionsPage,
+});
+
+const myAreaRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/my-area",
+  component: MyAreaPage,
+});
+
+const myConstituencyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/my-constituency",
+  component: MyConstituencyPage,
+});
+
+const topicRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/topic/$topic",
+  component: TopicPage,
+});
+
+const exploreRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/explore",
+  component: ExplorePage,
 });
 
 const walletRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/wallet',
+  path: "/wallet",
   component: WalletPage,
 });
 
-const routeTree = rootRoute.addChildren([
-  homeRoute,
-  videoRoute,
-  reelRoute,
-  eventsRoute,
-  groupsRoute,
-  groupDetailRoute,
-  groupsAndPagesRoute,
-  pagesRoute,
-  createPageRoute,
-  profileRoute,
-  userProfileRoute,
-  messagesRoute,
-  exploreRoute,
-  topicRoute,
-  pollsRoute,
-  createPollRoute,
-  myConstituencyRoute,
-  discussionsRoute,
-  walletRoute,
-]);
-
-// Use hash history for Capacitor to avoid blank pages on navigation
-const history = isCapacitor() ? createHashHistory() : undefined;
-
-const router = createRouter({ 
-  routeTree,
-  ...(history && { history }),
+const walletPointsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/wallet-points",
+  component: WalletPointsPage,
 });
 
-declare module '@tanstack/react-router' {
-  interface Register {
-    router: typeof router;
-  }
-}
+const userProfileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/user/$principalId",
+  component: UserProfilePage,
+});
+
+const educationRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/education",
+  component: EducationPage,
+});
+
+const eventsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/events",
+  component: EventsPage,
+});
+
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin",
+  component: AdminPage,
+});
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  pollsRoute,
+  pollResultsRoute,
+  createPollRoute,
+  profileRoute,
+  communitiesRoute,
+  groupDetailRoute,
+  pageDetailRoute,
+  createGroupRoute,
+  createPageRoute,
+  messagesRoute,
+  videoReelsRoute,
+  discussionsRoute,
+  myAreaRoute,
+  myConstituencyRoute,
+  topicRoute,
+  exploreRoute,
+  walletRoute,
+  walletPointsRoute,
+  userProfileRoute,
+  educationRoute,
+  eventsRoute,
+  adminRoute,
+]);
+
+const router = createRouter({
+  routeTree,
+  defaultNotFoundComponent: () => (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 p-8">
+      <h1 className="text-2xl font-bold text-foreground">Page Not Found</h1>
+      <p className="text-muted-foreground text-center">
+        The page you're looking for doesn't exist.
+      </p>
+      <a href="/" className="text-primary underline">
+        Go Home
+      </a>
+    </div>
+  ),
+});
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <ViewProvider>
+          <RouterProvider router={router} />
+          <Toaster position="top-center" richColors />
+        </ViewProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

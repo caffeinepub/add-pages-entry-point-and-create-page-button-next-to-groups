@@ -1,5 +1,7 @@
 import type { Principal } from "@icp-sdk/core/principal";
-import { PostType } from '../backend';
+
+// PostType defined locally since it's not exported from backend
+export type PostType = "regular" | "newsFeed";
 
 // User Profile Types
 export interface UserProfile {
@@ -10,6 +12,26 @@ export interface UserProfile {
   followerCount: bigint;
   badges: string[];
   verifiedStatus: boolean;
+  civicTokenBalance: bigint;
+}
+
+// Wallet Types
+export interface Wallet {
+  civPoints: number;
+  totalEarned: number;
+  dailyEarned: number;
+  level: number;
+  lastLoginDate: bigint;
+  lastResetDate: bigint;
+}
+
+// Point History Types
+export interface PointHistory {
+  userId: Principal;
+  actionType: string;
+  points: number;
+  date: bigint;
+  status: string;
 }
 
 // Media Content Types
@@ -17,6 +39,12 @@ export interface MediaContent {
   text: string | null;
   image: any | null;
   video: any | null;
+}
+
+// Post Edit (audit history entry)
+export interface PostEdit {
+  content: MediaContent;
+  timestamp: bigint;
 }
 
 // Post Types
@@ -29,14 +57,21 @@ export interface Post {
   seriousLikeCount: bigint;
   groupId: bigint | null;
   postType: PostType;
+  editHistory: PostEdit[];
+  isEdited: boolean;
 }
 
-// Comment Types
+// Comment Types — matches the backend Comment shape
 export interface Comment {
-  postId: bigint;
-  author: Principal;
+  id: bigint;
+  postId: string;
+  authorId: Principal;
   content: string;
-  timestamp: bigint;
+  createdAt: bigint;
+  updatedAt: bigint | null | undefined;
+  parentCommentId: bigint | null | undefined | bigint[];
+  likes: Principal[];
+  isDeleted: boolean;
 }
 
 // Poll Types
@@ -90,6 +125,17 @@ export interface GroupMembership {
   joinedAt: bigint;
 }
 
+// Page Types
+export interface Page {
+  pageName: string;
+  category: string;
+  description: string;
+  profileImage: any | null;
+  owner: Principal;
+  creationTime: bigint;
+  isPrivate: boolean;
+}
+
 // Notification Types
 export interface Notification {
   notificationId: bigint;
@@ -118,7 +164,7 @@ export interface AnalyticsData {
 export enum IssueStatus {
   new = "new",
   inReview = "inReview",
-  resolved = "resolved"
+  resolved = "resolved",
 }
 
 // Local Issue Types
@@ -147,13 +193,13 @@ export enum DiscussionCategory {
   policy = "policy",
   governance = "governance",
   economy = "economy",
-  socialIssues = "socialIssues"
+  socialIssues = "socialIssues",
 }
 
 export enum OpinionResponse {
   agree = "agree",
   neutral = "neutral",
-  disagree = "disagree"
+  disagree = "disagree",
 }
 
 export interface PoliticalDiscussion {
@@ -179,19 +225,20 @@ export enum ReportReason {
   misinformation = "misinformation",
   inappropriateContent = "inappropriateContent",
   harassment = "harassment",
-  other = "other"
+  hateSpeech = "hateSpeech",
+  other = "other",
 }
 
 export enum ReportTargetType {
   post = "post",
   comment = "comment",
-  profile = "profile"
+  profile = "profile",
 }
 
 export enum ReportStatus {
   new = "new",
   reviewed = "reviewed",
-  resolved = "resolved"
+  resolved = "resolved",
 }
 
 export interface Report {
@@ -206,9 +253,13 @@ export interface Report {
 }
 
 // Education Types
-export type EducationCategory = 'policy' | 'governance' | 'economy' | 'rightsAndDuties';
-export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
-export type QuestionType = 'multipleChoice' | 'trueFalse' | 'scenario';
+export type EducationCategory =
+  | "policy"
+  | "governance"
+  | "economy"
+  | "rightsAndDuties";
+export type DifficultyLevel = "beginner" | "intermediate" | "advanced";
+export type QuestionType = "multipleChoice" | "trueFalse" | "scenario";
 
 export interface LearningModule {
   id: bigint;

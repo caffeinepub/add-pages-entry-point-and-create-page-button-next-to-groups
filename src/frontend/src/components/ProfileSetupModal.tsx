@@ -1,17 +1,24 @@
-import { useState } from 'react';
-import { useSaveUserProfile } from '../hooks/useQueries';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import HierarchicalLocationSelector from './HierarchicalLocationSelector';
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import type React from "react";
+import { useState } from "react";
+import { useSaveCallerUserProfile } from "../hooks/useQueries";
+import HierarchicalLocationSelector from "./HierarchicalLocationSelector";
 
 export default function ProfileSetupModal() {
-  const [name, setName] = useState('');
-  const [bio, setBio] = useState('');
-  const [location, setLocation] = useState('');
-  const saveProfile = useSaveUserProfile();
+  const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
+  const [location, setLocation] = useState("");
+  const saveProfile = useSaveCallerUserProfile();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,29 +28,35 @@ export default function ProfileSetupModal() {
       name: name.trim(),
       bio: bio.trim(),
       location: location.trim(),
-      profilePhoto: null,
+      profilePhoto: undefined,
       followerCount: BigInt(0),
       badges: [],
       verifiedStatus: false,
+      civicTokenBalance: BigInt(0),
     });
   };
 
   return (
     <Dialog open={true} modal={true}>
-      <DialogContent 
-        className="profile-setup-modal sm:max-w-md max-h-[90vh] overflow-y-auto" 
+      <DialogContent
+        className="profile-setup-modal sm:max-w-md max-h-[90vh] overflow-y-auto"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-[oklch(0.15_0_0)]">Welcome to CivWorld</DialogTitle>
+          <DialogTitle className="text-xl font-semibold text-[oklch(0.15_0_0)]">
+            Welcome to CivWorld
+          </DialogTitle>
           <DialogDescription className="text-base text-[oklch(0.45_0.03_250)]">
             Set up your profile to get started
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div>
-            <Label htmlFor="name" className="text-sm font-semibold text-[oklch(0.15_0_0)] mb-2 block">
+            <Label
+              htmlFor="name"
+              className="text-sm font-semibold text-[oklch(0.15_0_0)] mb-2 block"
+            >
               Name *
             </Label>
             <Input
@@ -57,7 +70,10 @@ export default function ProfileSetupModal() {
             />
           </div>
           <div>
-            <Label htmlFor="bio" className="text-sm font-semibold text-[oklch(0.15_0_0)] mb-2 block">
+            <Label
+              htmlFor="bio"
+              className="text-sm font-semibold text-[oklch(0.15_0_0)] mb-2 block"
+            >
               Bio
             </Label>
             <Textarea
@@ -80,7 +96,7 @@ export default function ProfileSetupModal() {
             className="w-full bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)] text-white font-semibold"
             disabled={!name.trim() || saveProfile.isPending}
           >
-            {saveProfile.isPending ? 'Creating Profile...' : 'Create Profile'}
+            {saveProfile.isPending ? "Creating Profile..." : "Create Profile"}
           </Button>
         </form>
       </DialogContent>

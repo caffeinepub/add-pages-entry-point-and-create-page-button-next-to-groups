@@ -1,287 +1,343 @@
-import { useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Upload, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { Switch } from "@/components/ui/switch";
+import { useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, Loader2, Search, Upload, X } from "lucide-react";
+import type React from "react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { ExternalBlob } from "../backend";
+import { useActor } from "../hooks/useActor";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useCreatePage } from "../hooks/useQueries";
+import { formatBackendError } from "../utils/backendErrors";
+
+const PAGE_CATEGORIES = [
+  "Politics",
+  "Government",
+  "Civic Education",
+  "Local Issues",
+  "Policy",
+  "Economy",
+  "Environment",
+  "Healthcare",
+  "Education",
+  "Social Issues",
+  "Human Rights",
+  "Community",
+  "Other",
+];
 
 export default function CreatePagePage() {
   const navigate = useNavigate();
+  const [pageName, setPageName] = useState("");
+  const [category, setCategory] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [description, setDescription] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [profileFile, setProfileFile] = useState<File | null>(null);
+  const [profilePreview, setProfilePreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const profileInputRef = useRef<HTMLInputElement>(null);
+
+  const { actor, isFetching: actorFetching } = useActor();
   const { identity } = useInternetIdentity();
-  const [pageName, setPageName] = useState('');
-  const [category, setCategory] = useState('');
-  const [description, setDescription] = useState('');
-  const [visibility, setVisibility] = useState<'public' | 'private'>('public');
-  const [verificationRequested, setVerificationRequested] = useState(false);
-  const [profileImage, setProfileImage] = useState<File | null>(null);
-  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
-  const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const createPage = useCreatePage();
 
-  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const isActorReady = !!actor && !actorFetching;
+  const isAuthenticated = !!identity;
+
+  const filteredCategories = PAGE_CATEGORIES.filter((c) =>
+    c.toLowerCase().includes(categorySearch.toLowerCase()),
+  );
+
+  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setProfileImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    setProfileFile(file);
+    setProfilePreview(URL.createObjectURL(file));
   };
 
-  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCoverImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCoverImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeProfileImage = () => {
-    setProfileImage(null);
-    setProfileImagePreview(null);
-  };
-
-  const removeCoverImage = () => {
-    setCoverImage(null);
-    setCoverImagePreview(null);
+  const clearProfile = () => {
+    setProfileFile(null);
+    setProfilePreview(null);
+    setUploadProgress(0);
+    if (profileInputRef.current) profileInputRef.current.value = "";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!identity) {
-      toast.error('Please log in to create a page');
-      return;
-    }
-
     if (!pageName.trim()) {
-      toast.error('Page name is required');
+      toast.error("Please enter a page name.");
       return;
     }
-
     if (!category) {
-      toast.error('Please select a category');
+      toast.error("Please select a category.");
       return;
     }
-
-    setIsSubmitting(true);
+    if (!description.trim()) {
+      toast.error("Please enter a description.");
+      return;
+    }
+    if (!isAuthenticated) {
+      toast.error("Please log in to create a page.");
+      return;
+    }
+    if (!isActorReady) {
+      toast.error("Still connecting to the network. Please try again.");
+      return;
+    }
 
     try {
-      // Simulate submission delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.info('Page creation is not yet available. Backend functionality coming soon!');
-      
-      // Navigate back to pages list after showing message
-      setTimeout(() => {
-        navigate({ to: '/pages' });
-      }, 2000);
-    } catch (error) {
-      toast.error('Failed to create page');
-    } finally {
-      setIsSubmitting(false);
+      let profileBlob: ExternalBlob | null = null;
+
+      if (profileFile) {
+        const bytes = new Uint8Array(await profileFile.arrayBuffer());
+        profileBlob = ExternalBlob.fromBytes(bytes).withUploadProgress((pct) =>
+          setUploadProgress(pct),
+        );
+      }
+
+      await createPage.mutateAsync({
+        pageName: pageName.trim(),
+        category,
+        description: description.trim(),
+        profileImage: profileBlob,
+        isPrivate,
+      });
+
+      navigate({ to: "/communities" });
+    } catch (error: unknown) {
+      const msg = formatBackendError(error);
+      toast.error(msg);
     }
   };
 
   return (
-    <div className="min-h-full bg-background pb-20">
-      <div className="container max-w-2xl mx-auto px-4 py-6">
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate({ to: '/pages' })}
-            className="hover:bg-muted"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h2 className="text-2xl font-bold text-foreground">Create Page</h2>
-        </div>
+    <div className="min-h-screen bg-background pb-24">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-4 py-3 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/communities" })}
+          className="p-2 rounded-xl hover:bg-muted transition-colors"
+        >
+          <ArrowLeft size={20} className="text-foreground" />
+        </button>
+        <h1 className="text-lg font-semibold text-foreground">Create Page</h1>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-              <CardDescription>Set up your page's basic details</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="pageName">Page Name *</Label>
-                <Input
-                  id="pageName"
-                  value={pageName}
-                  onChange={(e) => setPageName(e.target.value)}
-                  placeholder="Enter page name"
-                  required
-                />
-              </div>
+      <div className="max-w-lg mx-auto px-4 py-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {!isActorReady && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/40 rounded-xl px-4 py-3">
+              <Loader2 size={14} className="animate-spin" />
+              <span>Connecting to network…</span>
+            </div>
+          )}
 
-              <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
-                <Select value={category} onValueChange={setCategory} required>
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="politics">Politics</SelectItem>
-                    <SelectItem value="news">News</SelectItem>
-                    <SelectItem value="business">Business</SelectItem>
-                    <SelectItem value="community">Community</SelectItem>
-                    <SelectItem value="public-figure">Public Figure</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Tell people about your page"
-                  rows={4}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Images</CardTitle>
-              <CardDescription>Add profile and cover images for your page</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Profile Image</Label>
-                {profileImagePreview ? (
-                  <div className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-border">
-                    <img src={profileImagePreview} alt="Profile preview" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={removeProfileImage}
-                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-4">
-                    <label htmlFor="profileImage" className="cursor-pointer">
-                      <div className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-md transition-colors">
-                        <Upload className="h-4 w-4" />
-                        <span className="text-sm">Upload Profile Image</span>
-                      </div>
-                      <input
-                        id="profileImage"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleProfileImageChange}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Cover Image</Label>
-                {coverImagePreview ? (
-                  <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-border">
-                    <img src={coverImagePreview} alt="Cover preview" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={removeCoverImage}
-                      className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-4">
-                    <label htmlFor="coverImage" className="cursor-pointer">
-                      <div className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-md transition-colors">
-                        <Upload className="h-4 w-4" />
-                        <span className="text-sm">Upload Cover Image</span>
-                      </div>
-                      <input
-                        id="coverImage"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleCoverImageChange}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Settings</CardTitle>
-              <CardDescription>Configure your page settings</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="visibility">Visibility</Label>
-                <Select value={visibility} onValueChange={(value: 'public' | 'private') => setVisibility(value)}>
-                  <SelectTrigger id="visibility">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="private">Private</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="verification">Request Verification</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Request a verified badge for your page
-                  </p>
-                </div>
-                <Switch
-                  id="verification"
-                  checked={verificationRequested}
-                  onCheckedChange={setVerificationRequested}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate({ to: '/pages' })}
-              className="flex-1"
+          {/* Page Name */}
+          <div>
+            <label
+              htmlFor="page-name"
+              className="block text-sm font-medium text-foreground mb-2"
             >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || !pageName.trim() || !category}
-              className="flex-1 bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)]"
-            >
-              {isSubmitting ? 'Creating...' : 'Create Page'}
-            </Button>
+              Page Name <span className="text-destructive">*</span>
+            </label>
+            <input
+              id="page-name"
+              type="text"
+              value={pageName}
+              onChange={(e) => setPageName(e.target.value)}
+              placeholder="Enter page name"
+              disabled={createPage.isPending}
+              className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+            />
           </div>
+
+          {/* Category */}
+          <div className="relative">
+            <label
+              htmlFor="page-category-toggle"
+              className="block text-sm font-medium text-foreground mb-2"
+            >
+              Category <span className="text-destructive">*</span>
+            </label>
+            <button
+              id="page-category-toggle"
+              type="button"
+              className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm cursor-pointer flex items-center justify-between"
+              onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+            >
+              <span
+                className={
+                  category ? "text-foreground" : "text-muted-foreground"
+                }
+              >
+                {category || "Select a category"}
+              </span>
+              <Search size={14} className="text-muted-foreground" />
+            </button>
+
+            {showCategoryDropdown && (
+              <div className="absolute z-20 w-full mt-1 bg-card border border-border rounded-xl shadow-lg overflow-hidden">
+                <div className="p-2 border-b border-border">
+                  <input
+                    type="text"
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    placeholder="Search categories…"
+                    className="w-full bg-muted/40 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                  />
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {filteredCategories.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => {
+                        setCategory(cat);
+                        setCategorySearch("");
+                        setShowCategoryDropdown(false);
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors ${
+                        category === cat
+                          ? "text-primary font-medium"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                  {filteredCategories.length === 0 && (
+                    <p className="px-4 py-3 text-sm text-muted-foreground">
+                      No categories found
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Description */}
+          <div>
+            <label
+              htmlFor="page-description"
+              className="block text-sm font-medium text-foreground mb-2"
+            >
+              Description <span className="text-destructive">*</span>
+            </label>
+            <textarea
+              id="page-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What is this page about?"
+              rows={4}
+              disabled={createPage.isPending}
+              className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+            />
+          </div>
+
+          {/* Profile Image */}
+          <div>
+            <label
+              htmlFor="page-profile-image"
+              className="block text-sm font-medium text-foreground mb-2"
+            >
+              Profile Image (optional)
+            </label>
+            {profilePreview ? (
+              <div className="relative w-24 h-24">
+                <img
+                  src={profilePreview}
+                  alt="Profile preview"
+                  className="w-24 h-24 rounded-full object-cover border-2 border-border"
+                />
+                <button
+                  type="button"
+                  onClick={clearProfile}
+                  className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 hover:bg-destructive/80"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => profileInputRef.current?.click()}
+                disabled={createPage.isPending}
+                className="flex items-center gap-2 border-2 border-dashed border-border rounded-xl px-4 py-3 text-sm text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors disabled:opacity-50"
+              >
+                <Upload size={16} />
+                <span>Upload profile image</span>
+              </button>
+            )}
+            <input
+              id="page-profile-image"
+              ref={profileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleProfileChange}
+            />
+          </div>
+
+          {createPage.isPending &&
+            uploadProgress > 0 &&
+            uploadProgress < 100 && (
+              <div className="w-full bg-muted rounded-full h-1.5">
+                <div
+                  className="bg-primary h-1.5 rounded-full transition-all"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            )}
+
+          {/* Privacy toggle */}
+          <div className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                Private Page
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {isPrivate
+                  ? "Only invited members can see this page"
+                  : "Anyone can view this page"}
+              </p>
+            </div>
+            <Switch
+              checked={isPrivate}
+              onCheckedChange={setIsPrivate}
+              disabled={createPage.isPending}
+            />
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={
+              createPage.isPending ||
+              !isActorReady ||
+              !pageName.trim() ||
+              !category ||
+              !description.trim()
+            }
+            className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground font-medium py-3 rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {createPage.isPending ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Creating Page…</span>
+              </>
+            ) : !isActorReady ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Connecting…</span>
+              </>
+            ) : (
+              <span>Create Page</span>
+            )}
+          </button>
         </form>
       </div>
     </div>

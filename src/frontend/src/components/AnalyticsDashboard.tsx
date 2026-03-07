@@ -1,20 +1,46 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useGetAnalyticsData } from '../hooks/useQueries';
-import { TrendingUp, Users, Heart, MessageCircle, FileText, BarChart3 } from 'lucide-react';
-import PostCard from './PostCard';
+import {
+  BarChart2,
+  Heart,
+  Loader2,
+  MessageCircle,
+  TrendingUp,
+  Users,
+} from "lucide-react";
+import type React from "react";
+import type { UserProfile } from "../backend";
+import { useGetAnalytics } from "../hooks/useQueries";
+import type { AnalyticsResult, TrendingHashtagItem } from "../hooks/useQueries";
+import type { Post } from "../types";
 
-interface AnalyticsDashboardProps {
-  variant?: 'personal' | 'global';
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: number | string;
+  icon: React.ElementType;
+}) {
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+        <Icon className="w-5 h-5 text-primary" />
+      </div>
+      <div>
+        <p className="text-xl font-bold text-foreground">{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+      </div>
+    </div>
+  );
 }
 
-export default function AnalyticsDashboard({ variant = 'personal' }: AnalyticsDashboardProps) {
-  const { data: analytics, isLoading } = useGetAnalyticsData();
+export default function AnalyticsDashboard() {
+  const { data: analytics, isLoading } = useGetAnalytics();
 
   if (isLoading) {
     return (
-      <div className="text-center py-8">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-        <p className="mt-2 text-muted-foreground">Loading analytics...</p>
+      <div className="flex justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -22,166 +48,114 @@ export default function AnalyticsDashboard({ variant = 'personal' }: AnalyticsDa
   if (!analytics) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        <BarChart3 className="h-16 w-16 mx-auto mb-4 opacity-50" />
-        <p>No analytics data available yet.</p>
+        No analytics data available
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <BarChart3 className="h-6 w-6 text-[oklch(0.45_0.12_250)]" />
-        <h3 className="text-xl font-semibold">
-          {variant === 'personal' ? 'Your Analytics' : 'Platform Analytics'}
-        </h3>
+    <div className="space-y-4">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard
+          label="Total Posts"
+          value={analytics.totalPosts}
+          icon={MessageCircle}
+        />
+        <StatCard
+          label="Total Likes"
+          value={analytics.totalLikes}
+          icon={Heart}
+        />
+        <StatCard
+          label="Poll Votes"
+          value={analytics.pollParticipations}
+          icon={BarChart2}
+        />
+        <StatCard
+          label="Followers"
+          value={analytics.followerCount}
+          icon={Users}
+        />
       </div>
 
-      {/* Engagement Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Total Posts
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-[oklch(0.45_0.12_250)]">
-              {Number(analytics.totalPosts).toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription className="flex items-center gap-2">
-              <Heart className="h-4 w-4" />
-              Total Likes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-red-500">
-              {Number(analytics.totalLikes).toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
-              Total Comments
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-green-600">
-              {Number(analytics.totalComments).toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Followers
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-purple-600">
-              {Number(analytics.followerCount).toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Poll Votes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-orange-600">
-              {Number(analytics.pollParticipations).toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Top Posts */}
-      {analytics.topPosts && analytics.topPosts.length > 0 && (
-        <div>
-          <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-[oklch(0.45_0.12_250)]" />
-            {variant === 'personal' ? 'Your Top Posts' : 'Trending Posts'}
-          </h4>
-          <div className="space-y-4">
-            {analytics.topPosts.slice(0, 3).map((post) => (
-              <PostCard key={post.id.toString()} post={post} />
+      {/* Trending Hashtags */}
+      {analytics.trendingHashtags && analytics.trendingHashtags.length > 0 && (
+        <div className="bg-card border border-border rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            <h3 className="font-semibold text-foreground text-sm">
+              Trending Hashtags
+            </h3>
+          </div>
+          <div className="space-y-2">
+            {analytics.trendingHashtags.map((hashtag: TrendingHashtagItem) => (
+              <div
+                key={hashtag.word}
+                className="flex items-center justify-between py-1"
+              >
+                <span className="text-sm text-primary font-medium">
+                  {hashtag.word}
+                </span>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                  {Number(hashtag.count)}
+                </span>
+              </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Trending Hashtags */}
-      {variant === 'global' && analytics.trendingHashtags && analytics.trendingHashtags.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Trending Hashtags
-            </CardTitle>
-            <CardDescription>Most popular topics in the last 24 hours</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {analytics.trendingHashtags.map((hashtag) => (
-                <div
-                  key={hashtag.word}
-                  className="px-4 py-2 bg-[oklch(0.45_0.12_250)]/10 text-[oklch(0.45_0.12_250)] rounded-full text-sm font-medium"
-                >
-                  {hashtag.word}
-                  <span className="ml-2 text-xs opacity-70">
-                    {Number(hashtag.count)}
-                  </span>
+      {/* Top Posts */}
+      {analytics.topPosts && analytics.topPosts.length > 0 && (
+        <div className="bg-card border border-border rounded-2xl p-4">
+          <h3 className="font-semibold text-foreground text-sm mb-3">
+            Top Posts
+          </h3>
+          <div className="space-y-3">
+            {analytics.topPosts.map((post: Post) => (
+              <div key={String(post.id)} className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-foreground truncate">
+                    {post.content.text || "(media post)"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {Number(post.likeCount)} likes
+                  </p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* Top Contributors (Global only) */}
-      {variant === 'global' && analytics.topContributors && analytics.topContributors.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Top Contributors
-            </CardTitle>
-            <CardDescription>Most active users on the platform</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {analytics.topContributors.slice(0, 5).map((contributor, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div>
-                    <p className="font-semibold">{contributor.name}</p>
-                    <p className="text-sm text-muted-foreground">{contributor.bio}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-[oklch(0.45_0.12_250)]">
-                      {Number(contributor.followerCount).toLocaleString()} followers
-                    </p>
-                  </div>
+      {/* Top Contributors */}
+      {analytics.topContributors && analytics.topContributors.length > 0 && (
+        <div className="bg-card border border-border rounded-2xl p-4">
+          <h3 className="font-semibold text-foreground text-sm mb-3">
+            Top Contributors
+          </h3>
+          <div className="space-y-3">
+            {analytics.topContributors.map((contributor: UserProfile) => (
+              <div key={contributor.name} className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">
+                  {contributor.name.slice(0, 2).toUpperCase()}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm text-foreground truncate">
+                    {contributor.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {contributor.bio}
+                  </p>
+                </div>
+                <span className="text-xs text-muted-foreground flex-shrink-0">
+                  {Number(contributor.followerCount).toLocaleString()} followers
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,88 +1,91 @@
 /**
- * Centralized backend error handling utilities
- * Converts backend errors into user-friendly English messages
+ * Centralized backend error handling utilities.
+ * Converts various error types into user-friendly English messages.
  */
 
-/**
- * Extracts a user-safe error message from various error types
- */
-export function formatBackendError(error: unknown): string {
-  if (!error) {
-    return 'An unknown error occurred';
+export function getBackendErrorMessage(error: unknown): string {
+  if (!error) return "An unknown error occurred";
+
+  if (typeof error === "string") {
+    return cleanErrorMessage(error);
   }
 
-  // Handle Error objects
   if (error instanceof Error) {
-    const message = error.message;
-    
-    // Handle trap messages from backend
-    if (message.includes('trap')) {
-      // Extract the trap message if available
-      const trapMatch = message.match(/trap[:\s]+(.+?)(?:\n|$)/i);
-      if (trapMatch && trapMatch[1]) {
-        return trapMatch[1].trim();
-      }
-      return 'The operation was rejected by the system';
-    }
-    
-    // Handle authentication errors
-    if (message.includes('Unauthorized') || message.includes('not authenticated')) {
-      return 'Please log in to perform this action';
-    }
-    
-    // Handle actor availability errors
-    if (message.includes('Actor not available')) {
-      return 'System is initializing. Please wait a moment and try again';
-    }
-    
-    // Handle content validation errors
-    if (message.includes('Content must include')) {
-      return 'Please add text, an image, or a video to your post';
+    return cleanErrorMessage(error.message);
+  }
+
+  if (typeof error === "object") {
+    const obj = error as Record<string, unknown>;
+
+    // IC agent error format
+    if (obj.message && typeof obj.message === "string") {
+      return cleanErrorMessage(obj.message);
     }
 
-    // Handle location-related errors
-    if (message.includes('location') || message.includes('Location')) {
-      return message;
+    // Candid reject
+    if (obj.reject_message && typeof obj.reject_message === "string") {
+      return cleanErrorMessage(obj.reject_message as string);
     }
-    
-    // Return the original message if it's already user-friendly
-    if (message.length > 0 && message.length < 200) {
-      return message;
+
+    // Nested error
+    if (obj.error) {
+      return getBackendErrorMessage(obj.error);
     }
   }
 
-  // Handle string errors
-  if (typeof error === 'string') {
-    return error;
+  return "An unexpected error occurred. Please try again.";
+}
+
+function cleanErrorMessage(msg: string): string {
+  // Remove IC-specific prefixes
+  const cleaned = msg
+    .replace(/^Error:\s*/i, "")
+    .replace(/^IC0503:\s*/i, "")
+    .replace(/^Canister.*?trapped.*?message:\s*/i, "")
+    .replace(/^Call failed.*?Reject message:\s*/i, "")
+    .replace(/^Reject text:\s*/i, "")
+    .trim();
+
+  // Map common backend errors to friendly messages
+  if (
+    cleaned.toLowerCase().includes("unauthorized") ||
+    cleaned.toLowerCase().includes("only registered users")
+  ) {
+    return "You must be logged in to perform this action.";
+  }
+  if (cleaned.toLowerCase().includes("not found")) {
+    return (
+      cleaned.replace(/runtime\.trap\s*/i, "").trim() ||
+      "The requested item was not found."
+    );
+  }
+  if (cleaned.toLowerCase().includes("already voted")) {
+    return "You have already voted on this poll.";
+  }
+  if (cleaned.toLowerCase().includes("already liked")) {
+    return "You have already liked this post.";
+  }
+  if (cleaned.toLowerCase().includes("already a member")) {
+    return "You are already a member of this group.";
+  }
+  if (cleaned.toLowerCase().includes("cannot be empty")) {
+    return cleaned;
+  }
+  if (cleaned.toLowerCase().includes("must have at least")) {
+    return cleaned;
+  }
+  if (cleaned.toLowerCase().includes("content must include")) {
+    return "Please add text, image, or video to your post.";
+  }
+  if (
+    cleaned.toLowerCase().includes("network") ||
+    cleaned.toLowerCase().includes("fetch")
+  ) {
+    return "Network error. Please check your connection and try again.";
   }
 
-  // Handle objects with message property
-  if (typeof error === 'object' && error !== null && 'message' in error) {
-    const msg = (error as any).message;
-    if (typeof msg === 'string') {
-      return formatBackendError(new Error(msg));
-    }
-  }
-
-  return 'An unexpected error occurred. Please try again';
+  return cleaned || "An unexpected error occurred. Please try again.";
 }
 
-/**
- * Checks if an error indicates the user needs to log in
- */
-export function isAuthenticationError(error: unknown): boolean {
-  const message = formatBackendError(error).toLowerCase();
-  return message.includes('log in') || 
-         message.includes('unauthorized') || 
-         message.includes('not authenticated');
-}
-
-/**
- * Checks if an error indicates the system is not ready
- */
-export function isSystemNotReadyError(error: unknown): boolean {
-  const message = formatBackendError(error).toLowerCase();
-  return message.includes('actor not available') || 
-         message.includes('initializing') ||
-         message.includes('system is');
-}
+// Alias for backward compatibility
+export const formatBackendError = getBackendErrorMessage;

@@ -1,178 +1,152 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useGetCallerUserProfile, useGetUserPosts } from '../hooks/useQueries';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Users, MessageSquare, BarChart3, Camera } from 'lucide-react';
-import EditProfileModal from '../components/EditProfileModal';
-import EditProfilePictureModal from '../components/EditProfilePictureModal';
-import PostCard from '../components/PostCard';
-import BadgeDisplay from '../components/BadgeDisplay';
-import VerifiedBadge from '../components/VerifiedBadge';
-import AnalyticsDashboard from '../components/AnalyticsDashboard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Camera, Loader2, Settings, User } from "lucide-react";
+import React, { useState } from "react";
+import AnalyticsDashboard from "../components/AnalyticsDashboard";
+import EditProfileModal from "../components/EditProfileModal";
+import EditProfilePictureModal from "../components/EditProfilePictureModal";
+import PostCard from "../components/PostCard";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useGetCallerUserProfile, useGetPosts } from "../hooks/useQueries";
 
 export default function ProfilePage() {
-  const navigate = useNavigate();
   const { identity } = useInternetIdentity();
-  const { data: userProfile, isLoading: profileLoading } = useGetCallerUserProfile();
-  const { data: userPosts, isLoading: postsLoading } = useGetUserPosts(identity?.getPrincipal() || null);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editPhotoModalOpen, setEditPhotoModalOpen] = useState(false);
+  const { data: userProfile, isLoading: profileLoading } =
+    useGetCallerUserProfile();
+  const { data: allPosts = [], isLoading: postsLoading } = useGetPosts();
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showEditPicture, setShowEditPicture] = useState(false);
 
-  // Show loading state while profile is being fetched
+  const userPosts = allPosts.filter(
+    (p) =>
+      identity && p.author.toString() === identity.getPrincipal().toString(),
+  );
+
+  const profilePhotoUrl = userProfile?.profilePhoto
+    ? userProfile.profilePhoto.getDirectURL()
+    : null;
+
   if (profileLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-          <p className="text-muted-foreground">Loading profile...</p>
-        </div>
+      <div className="flex justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!userProfile) {
-    return null;
-  }
-
-  const userInitials = userProfile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  const profilePhotoUrl = userProfile.profilePhoto?.getDirectURL();
-
   return (
-    <div className="min-h-full bg-background pb-20">
+    <div className="min-h-screen bg-background pb-24">
       {/* Profile Header */}
-      <div className="bg-[oklch(0.45_0.12_250)] text-white pt-8 pb-24">
-        <div className="container max-w-2xl mx-auto px-4">
-          <div className="flex flex-col items-center">
-            <div className="relative">
-              <Avatar className="h-32 w-32 border-4 border-white shadow-lg">
-                {profilePhotoUrl ? (
-                  <AvatarImage src={profilePhotoUrl} alt={userProfile.name} />
-                ) : (
-                  <AvatarFallback className="bg-white text-[oklch(0.45_0.12_250)] text-3xl font-bold">
-                    {userInitials}
-                  </AvatarFallback>
-                )}
-              </Avatar>
-              <Button
-                size="icon"
-                className="absolute bottom-0 right-0 h-10 w-10 rounded-full bg-white text-[oklch(0.45_0.12_250)] hover:bg-white/90 shadow-lg"
-                onClick={() => setEditPhotoModalOpen(true)}
-              >
-                <Camera className="h-5 w-5" />
-              </Button>
+      <div className="bg-card border-b border-border px-4 py-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="relative">
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center">
+              {profilePhotoUrl ? (
+                <img
+                  src={profilePhotoUrl}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-10 h-10 text-primary" />
+              )}
             </div>
+            <button
+              type="button"
+              onClick={() => setShowEditPicture(true)}
+              className="absolute bottom-0 right-0 w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-md"
+            >
+              <Camera className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowEditProfile(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-xl text-sm font-medium hover:bg-muted transition-all"
+          >
+            <Settings className="w-4 h-4" />
+            Edit Profile
+          </button>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-bold text-foreground">
+            {userProfile?.name || "Anonymous"}
+          </h2>
+          {userProfile?.bio && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {userProfile.bio}
+            </p>
+          )}
+          {userProfile?.location && (
+            <p className="text-xs text-muted-foreground mt-1">
+              📍 {userProfile.location}
+            </p>
+          )}
+        </div>
+
+        {/* Stats */}
+        <div className="flex gap-6 mt-4">
+          <div className="text-center">
+            <p className="text-lg font-bold text-foreground">
+              {userPosts.length}
+            </p>
+            <p className="text-xs text-muted-foreground">Posts</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-foreground">
+              {Number(userProfile?.followerCount ?? 0)}
+            </p>
+            <p className="text-xs text-muted-foreground">Followers</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-foreground">
+              {Number(userProfile?.civicTokenBalance ?? 0)}
+            </p>
+            <p className="text-xs text-muted-foreground">CVT</p>
           </div>
         </div>
       </div>
 
-      {/* Profile Info Card */}
-      <div className="container max-w-2xl mx-auto px-4 -mt-16">
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <h2 className="text-3xl font-bold text-foreground">{userProfile.name}</h2>
-              {userProfile.verifiedStatus && <VerifiedBadge size="lg" />}
-            </div>
-            {userProfile.bio && (
-              <p className="text-muted-foreground mb-4">{userProfile.bio}</p>
-            )}
-            
-            {/* Badges Display */}
-            {userProfile.badges && userProfile.badges.length > 0 && (
-              <div className="flex justify-center mb-4">
-                <BadgeDisplay badges={userProfile.badges} size="lg" />
-              </div>
-            )}
-            
-            <div className="flex items-center justify-center gap-6 mb-6 text-sm text-muted-foreground">
-              {userProfile.location && (
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  <span>{userProfile.location}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                <span className="font-semibold text-foreground">
-                  {Number(userProfile.followerCount).toLocaleString()}
-                </span>
-                <span>Followers</span>
-              </div>
-            </div>
-
-            <div className="flex gap-3 justify-center">
-              <Button
-                onClick={() => setEditModalOpen(true)}
-                className="bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)] text-white px-8 shadow-md hover:shadow-lg transition-all duration-200"
-              >
-                Edit Profile
-              </Button>
-              <Button
-                onClick={() => navigate({ to: '/messages' })}
-                variant="outline"
-                className="gap-2 px-6 border-[oklch(0.45_0.12_250)] text-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.45_0.12_250)] hover:text-white transition-all duration-200"
-              >
-                <MessageSquare className="h-4 w-4" />
-                Messages
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Tabs for Posts and Analytics */}
-        <Tabs defaultValue="posts" className="mb-8">
-          <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted">
-            <TabsTrigger value="posts" className="data-[state=active]:bg-white data-[state=active]:text-foreground">
-              My Posts
+      {/* Tabs */}
+      <div className="px-4 py-4 max-w-lg mx-auto">
+        <Tabs defaultValue="posts">
+          <TabsList className="w-full mb-4">
+            <TabsTrigger value="posts" className="flex-1">
+              Posts
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="gap-2 data-[state=active]:bg-white data-[state=active]:text-foreground">
-              <BarChart3 className="h-4 w-4" />
+            <TabsTrigger value="analytics" className="flex-1">
               Analytics
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="posts" className="space-y-4">
+          <TabsContent value="posts">
             {postsLoading ? (
-              <div className="text-center py-8">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
-            ) : userPosts && userPosts.length > 0 ? (
-              <div className="space-y-4">
-                {userPosts.map((post) => <PostCard key={post.id.toString()} post={post} />)}
+            ) : userPosts.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                No posts yet
               </div>
             ) : (
-              <div className="text-center py-12 text-muted-foreground bg-white rounded-lg border border-border">
-                <p>No posts yet. Create your first post!</p>
-              </div>
+              userPosts.map((post) => (
+                <PostCard key={post.id.toString()} post={post} />
+              ))
             )}
           </TabsContent>
-
           <TabsContent value="analytics">
-            <AnalyticsDashboard variant="personal" />
+            <AnalyticsDashboard />
           </TabsContent>
         </Tabs>
-
-        {/* Footer */}
-        <footer className="text-center py-8 text-sm text-muted-foreground border-t">
-          <p>
-            © 2026. Built with love using{' '}
-            <a
-              href="https://caffeine.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[oklch(0.45_0.12_250)] hover:underline"
-            >
-              caffeine.ai
-            </a>
-          </p>
-        </footer>
       </div>
 
-      <EditProfileModal open={editModalOpen} onOpenChange={setEditModalOpen} />
-      <EditProfilePictureModal open={editPhotoModalOpen} onOpenChange={setEditPhotoModalOpen} />
+      <EditProfileModal
+        open={showEditProfile}
+        onOpenChange={setShowEditProfile}
+      />
+      <EditProfilePictureModal
+        open={showEditPicture}
+        onOpenChange={setShowEditPicture}
+      />
     </div>
   );
 }

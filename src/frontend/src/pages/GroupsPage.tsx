@@ -1,99 +1,96 @@
-import { useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useGetAllGroups, useGetUserGroups } from '../hooks/useQueries';
-import { Button } from '@/components/ui/button';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users } from 'lucide-react';
+import { useNavigate } from "@tanstack/react-router";
+import { ChevronRight, Loader2, Plus, Users } from "lucide-react";
+import React from "react";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useGetGroups } from "../hooks/useQueries";
+import type { Group } from "../types";
 
 export default function GroupsPage() {
   const navigate = useNavigate();
   const { identity } = useInternetIdentity();
-  const { data: allGroups, isLoading: allGroupsLoading } = useGetAllGroups();
-  const { data: userGroups, isLoading: userGroupsLoading } = useGetUserGroups(identity?.getPrincipal() || null);
+  const { data: groups = [], isLoading } = useGetGroups();
 
   return (
-    <div className="min-h-full bg-background">
-      <div className="container max-w-2xl mx-auto px-4 py-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
-          <h2 className="text-2xl font-bold text-foreground">Groups</h2>
-          <Button
-            onClick={() => navigate({ to: '/pages/create' })}
-            className="bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)]"
+    <div className="min-h-screen bg-background pb-24">
+      <div className="sticky top-14 z-10 bg-background/95 backdrop-blur border-b border-border px-4 py-3 flex items-center justify-between">
+        <h1 className="text-lg font-bold text-foreground">Groups</h1>
+        {identity && (
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/create-group" })}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all"
           >
-            Create Page
-          </Button>
-        </div>
+            <Plus className="w-4 h-4" />
+            Create
+          </button>
+        )}
+      </div>
 
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="all">All Groups</TabsTrigger>
-            <TabsTrigger value="my-groups">My Groups</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="all" className="space-y-4">
-            {allGroupsLoading ? (
-              <div className="text-center py-12">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-              </div>
-            ) : allGroups && allGroups.length > 0 ? (
-              allGroups.map((group) => (
-                <GroupCard key={group.id.toString()} group={group} onClick={() => navigate({ to: `/groups/${group.id.toString()}` })} />
-              ))
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <Users className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <p>No groups yet. Create the first one!</p>
-              </div>
+      <div className="px-4 py-4 max-w-lg mx-auto">
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : groups.length === 0 ? (
+          <div className="text-center py-12">
+            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground font-medium">No groups yet</p>
+            {identity && (
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/create-group" })}
+                className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold"
+              >
+                Create First Group
+              </button>
             )}
-          </TabsContent>
-
-          <TabsContent value="my-groups" className="space-y-4">
-            {userGroupsLoading ? (
-              <div className="text-center py-12">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-              </div>
-            ) : userGroups && userGroups.length > 0 ? (
-              userGroups.map((group) => (
-                <GroupCard key={group.id.toString()} group={group} onClick={() => navigate({ to: `/groups/${group.id.toString()}` })} />
-              ))
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <Users className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <p>You haven't joined any groups yet.</p>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {groups.map((group: Group) => {
+              const coverUrl = group.coverImage
+                ? (group.coverImage as any).getDirectURL?.()
+                : null;
+              return (
+                <button
+                  type="button"
+                  key={group.id.toString()}
+                  onClick={() =>
+                    navigate({
+                      to: "/groups/$groupId",
+                      params: { groupId: group.id.toString() },
+                    })
+                  }
+                  className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl p-3 hover:bg-muted/50 transition-all text-left"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    {coverUrl ? (
+                      <img
+                        src={coverUrl}
+                        alt={group.name}
+                        className="w-full h-full object-cover rounded-xl"
+                      />
+                    ) : (
+                      <Users className="w-6 h-6 text-primary" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground text-sm truncate">
+                      {group.name}
+                    </p>
+                    {group.description && (
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {group.description}
+                      </p>
+                    )}
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
-  );
-}
-
-function GroupCard({ group, onClick }: { group: any; onClick: () => void }) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-
-  useState(() => {
-    if (group.coverImage) {
-      setImageUrl(group.coverImage.getDirectURL());
-    }
-  });
-
-  return (
-    <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
-      {imageUrl && (
-        <div className="w-full h-48 overflow-hidden">
-          <img src={imageUrl} alt={group.name} className="w-full h-full object-cover" />
-        </div>
-      )}
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-[oklch(0.45_0.12_250)]" />
-          {group.name}
-        </CardTitle>
-        <CardDescription>{group.description}</CardDescription>
-      </CardHeader>
-    </Card>
   );
 }

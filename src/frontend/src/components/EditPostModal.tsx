@@ -1,297 +1,187 @@
-import { useState, useRef, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Image as ImageIcon, Video as VideoIcon, X } from 'lucide-react';
-import { useUpdatePost } from '../hooks/useQueries';
-import type { Post } from '../types';
-import { toast } from 'sonner';
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Clock, Loader2, Save, User } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { useUpdatePost } from "../hooks/useQueries";
+import type { Post } from "../types";
 
 interface EditPostModalProps {
-  post: Post;
-  isOpen: boolean;
-  onClose: () => void;
+  post: Post | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export default function EditPostModal({ post, isOpen, onClose }: EditPostModalProps) {
-  const [content, setContent] = useState(post.content.text || '');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [videoPreview, setVideoPreview] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
+function timeAgo(timestamp: bigint | number): string {
+  const now = Date.now();
+  const postTime = Number(timestamp) / 1_000_000;
+  const diff = Math.floor((now - postTime) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+export default function EditPostModal({
+  post,
+  open,
+  onOpenChange,
+}: EditPostModalProps) {
+  const [text, setText] = useState("");
   const updatePost = useUpdatePost();
 
+  // Pre-fill with current post text when modal opens
   useEffect(() => {
-    if (isOpen) {
-      setContent(post.content.text || '');
-      if (post.content.image) {
-        setImagePreview((post.content.image as any).getDirectURL());
-      } else {
-        setImagePreview(null);
-      }
-      if (post.content.video) {
-        setVideoPreview((post.content.video as any).getDirectURL());
-      } else {
-        setVideoPreview(null);
-      }
-      setImageFile(null);
-      setVideoFile(null);
-      setUploadProgress(0);
+    if (post && open) {
+      setText(post.content.text ?? "");
     }
-  }, [isOpen, post]);
+  }, [post, open]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
-      return;
-    }
-
-    setImageFile(file);
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+  const handleClose = () => {
+    if (updatePost.isPending) return;
+    onOpenChange(false);
   };
 
-  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('video/')) {
-      toast.error('Please select a video file');
-      return;
-    }
-
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('Video size must be less than 50MB');
-      return;
-    }
-
-    setVideoFile(file);
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setVideoPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-    if (imageInputRef.current) {
-      imageInputRef.current.value = '';
-    }
-  };
-
-  const handleRemoveVideo = () => {
-    setVideoFile(null);
-    setVideoPreview(null);
-    if (videoInputRef.current) {
-      videoInputRef.current.value = '';
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!content.trim() && !imagePreview && !videoPreview) {
-      toast.error('Please add text, an image, or a video to your post');
+  const handleSave = async () => {
+    if (!post) return;
+    const trimmed = text.trim();
+    if (!trimmed) {
+      toast.error("Post text cannot be empty");
       return;
     }
 
     try {
-      let imageBlob: any = undefined;
-      let videoBlob: any = undefined;
+      // Text-only edit — preserve existing media from the post
+      const content = {
+        text: trimmed,
+        image: post.content.image ?? null,
+        video: post.content.video ?? null,
+      };
 
-      if (imageFile) {
-        const arrayBuffer = await imageFile.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        // Use ExternalBlob from window if available
-        if (typeof (window as any).ExternalBlob !== 'undefined') {
-          const ExternalBlob = (window as any).ExternalBlob;
-          imageBlob = ExternalBlob.fromBytes(uint8Array).withUploadProgress((percentage: number) => {
-            setUploadProgress(percentage);
-          });
-        } else {
-          imageBlob = uint8Array;
-        }
-      } else if (imagePreview && post.content.image) {
-        imageBlob = post.content.image;
-      }
-
-      if (videoFile) {
-        const arrayBuffer = await videoFile.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        // Use ExternalBlob from window if available
-        if (typeof (window as any).ExternalBlob !== 'undefined') {
-          const ExternalBlob = (window as any).ExternalBlob;
-          videoBlob = ExternalBlob.fromBytes(uint8Array).withUploadProgress((percentage: number) => {
-            setUploadProgress(percentage);
-          });
-        } else {
-          videoBlob = uint8Array;
-        }
-      } else if (videoPreview && post.content.video) {
-        videoBlob = post.content.video;
-      }
-
-      await updatePost.mutateAsync({
-        postId: post.id,
-        content: {
-          text: content.trim() || undefined,
-          image: imageBlob,
-          video: videoBlob,
-        },
-      });
-
-      onClose();
-      toast.success('Post updated successfully!');
-    } catch (error) {
-      console.error('Error updating post:', error);
-      toast.error('Failed to update post');
+      await updatePost.mutateAsync({ postId: post.id, content });
+      onOpenChange(false);
+    } catch {
+      // error handled by mutation's onError
     }
   };
 
-  const isUploading = updatePost.isPending && uploadProgress > 0 && uploadProgress < 100;
+  if (!post) return null;
+
+  const authorDisplay = post.author.toString();
+  const shortAuthor = `${authorDisplay.slice(0, 8)}...${authorDisplay.slice(-4)}`;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) handleClose();
+      }}
+    >
+      <DialogContent className="max-w-lg w-full rounded-2xl mx-auto animate-in fade-in-0 zoom-in-95 duration-200">
         <DialogHeader>
-          <DialogTitle>Edit Post</DialogTitle>
+          <DialogTitle className="text-base font-semibold">
+            Edit Post
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <Textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="What's on your mind?"
-            rows={5}
-            className="resize-none"
-          />
-
-          {/* Inline Media Preview Area */}
-          {(imagePreview || videoPreview) && (
-            <div className="space-y-2">
-              {imagePreview && (
-                <div className="relative w-full rounded-lg overflow-hidden border border-border bg-muted">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-auto max-h-96 object-contain"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-8 w-8 shadow-lg"
-                    onClick={handleRemoveImage}
-                    type="button"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-
-              {videoPreview && (
-                <div className="relative w-full rounded-lg overflow-hidden border border-border bg-black">
-                  <video
-                    src={videoPreview}
-                    controls
-                    className="w-full h-auto max-h-96"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-8 w-8 shadow-lg"
-                    onClick={handleRemoveVideo}
-                    type="button"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
+        <div className="space-y-4 py-1">
+          {/* Read-only author & timestamp info */}
+          <div className="flex items-center gap-4 px-3 py-2.5 bg-muted/40 rounded-xl border border-border/50">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <User className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="font-mono">{shortAuthor}</span>
             </div>
-          )}
-
-          {isUploading && (
-            <div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Uploading: {uploadProgress}%</span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-2 mt-1">
-                <div
-                  className="bg-[oklch(0.45_0.12_250)] h-2 rounded-full transition-all"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground ml-auto">
+              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{timeAgo(post.timestamp)}</span>
             </div>
-          )}
-
-          <div className="flex gap-2">
-            <input
-              ref={imageInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              className="hidden"
-              id="edit-image-upload"
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-              onClick={() => imageInputRef.current?.click()}
-              type="button"
-              disabled={updatePost.isPending}
-            >
-              <ImageIcon className="h-4 w-4" />
-              {imagePreview ? 'Change Image' : 'Add Image'}
-            </Button>
-
-            <input
-              ref={videoInputRef}
-              type="file"
-              accept="video/*"
-              onChange={handleVideoSelect}
-              className="hidden"
-              id="edit-video-upload"
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-              onClick={() => videoInputRef.current?.click()}
-              type="button"
-              disabled={updatePost.isPending}
-            >
-              <VideoIcon className="h-4 w-4" />
-              {videoPreview ? 'Change Video' : 'Add Video'}
-            </Button>
           </div>
+
+          {/* Editable text content */}
+          <div className="space-y-1.5">
+            <label
+              htmlFor="edit-post-content"
+              className="text-xs font-medium text-muted-foreground uppercase tracking-wide"
+            >
+              Content
+            </label>
+            <Textarea
+              id="edit-post-content"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="What's on your mind?"
+              className="min-h-[120px] resize-none text-sm rounded-xl focus:ring-2 focus:ring-primary/30"
+              disabled={updatePost.isPending}
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground">
+              Only text content can be edited. Media attachments are preserved.
+            </p>
+          </div>
+
+          {/* Show existing media as read-only preview */}
+          {post.content.image && (
+            <div className="relative rounded-xl overflow-hidden border border-border/50">
+              <img
+                src={(post.content.image as any).getDirectURL?.() ?? ""}
+                alt="Attached media"
+                className="w-full max-h-40 object-cover"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-3 py-1.5">
+                <p className="text-xs text-white/80">
+                  Image attachment (cannot be changed)
+                </p>
+              </div>
+            </div>
+          )}
+          {post.content.video && (
+            <div className="relative rounded-xl overflow-hidden border border-border/50">
+              <video
+                src={(post.content.video as any).getDirectURL?.() ?? ""}
+                className="w-full max-h-40"
+                muted
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-3 py-1.5">
+                <p className="text-xs text-white/80">
+                  Video attachment (cannot be changed)
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={updatePost.isPending}>
+        <DialogFooter className="gap-2 pt-2">
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            disabled={updatePost.isPending}
+            className="min-h-[44px]"
+          >
             Cancel
           </Button>
           <Button
-            onClick={handleSubmit}
-            disabled={(!content.trim() && !imagePreview && !videoPreview) || updatePost.isPending}
-            className="bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)]"
+            onClick={handleSave}
+            disabled={!text.trim() || updatePost.isPending}
+            className="min-h-[44px] gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            {updatePost.isPending ? 'Saving...' : 'Save Changes'}
+            {updatePost.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                Save Changes
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

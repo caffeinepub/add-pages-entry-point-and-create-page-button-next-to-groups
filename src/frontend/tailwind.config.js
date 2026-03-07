@@ -9,13 +9,27 @@ export default {
     theme: {
         container: {
             center: true,
-            padding: '2rem',
+            padding: '1rem',
             screens: {
                 '2xl': '1400px'
             }
         },
         extend: {
+            screens: {
+                'xs': '360px',
+            },
             colors: {
+                'app-background': 'oklch(var(--app-background))',
+                'saffron': {
+                    DEFAULT: 'oklch(var(--saffron))',
+                    light: 'oklch(var(--saffron-light))',
+                    dark: 'oklch(var(--saffron-dark))',
+                },
+                'deep-blue': {
+                    DEFAULT: 'oklch(var(--deep-blue))',
+                    dark: 'oklch(var(--deep-blue-dark))',
+                    light: 'oklch(var(--deep-blue-light))',
+                },
                 border: 'oklch(var(--border))',
                 input: 'oklch(var(--input))',
                 ring: 'oklch(var(--ring) / <alpha-value>)',
@@ -67,13 +81,20 @@ export default {
                     ring: 'oklch(var(--sidebar-ring))'
                 }
             },
+            fontFamily: {
+                sans: ['Inter', 'Poppins', 'system-ui', '-apple-system', 'sans-serif'],
+                display: ['Poppins', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            },
             borderRadius: {
                 lg: 'var(--radius)',
                 md: 'calc(var(--radius) - 2px)',
                 sm: 'calc(var(--radius) - 4px)'
             },
             boxShadow: {
-                xs: '0 1px 2px 0 rgba(0,0,0,0.05)'
+                'xs': '0 1px 2px 0 rgba(0,0,0,0.05)',
+                'soft': '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06)',
+                'premium': '0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06)',
+                'premium-top': '0 -4px 16px rgba(0, 0, 0, 0.08), 0 -2px 4px rgba(0, 0, 0, 0.06)',
             },
             keyframes: {
                 'accordion-down': {

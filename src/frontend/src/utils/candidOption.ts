@@ -3,7 +3,7 @@
  * Ensures proper serialization of optional fields for backend communication
  */
 
-import { ExternalBlob } from '../backend';
+import type { ExternalBlob } from "../backend";
 
 export interface MediaContent {
   text: string | null;
@@ -46,6 +46,6 @@ export function hasValidContent(content: {
   const hasText = isTextValid(content.text);
   const hasImage = !!content.image;
   const hasVideo = !!content.video;
-  
+
   return hasText || hasImage || hasVideo;
 }

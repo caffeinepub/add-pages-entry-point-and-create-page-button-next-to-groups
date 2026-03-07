@@ -1,8 +1,8 @@
-import CreatePostCard from '../components/CreatePostCard';
-import { useNavigate } from '@tanstack/react-router';
-import { useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Video, Calendar } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useNavigate } from "@tanstack/react-router";
+import { Calendar, Video } from "lucide-react";
+import { useEffect } from "react";
+import CreatePostCard from "../components/CreatePostCard";
 
 export default function SharePage() {
   const navigate = useNavigate();
@@ -11,23 +11,25 @@ export default function SharePage() {
   useEffect(() => {
     const handlePostCreated = () => {
       setTimeout(() => {
-        navigate({ to: '/' });
+        navigate({ to: "/" });
       }, 1000);
     };
 
     // Listen for successful content creation
-    window.addEventListener('postCreated', handlePostCreated);
-    
+    window.addEventListener("postCreated", handlePostCreated);
+
     return () => {
-      window.removeEventListener('postCreated', handlePostCreated);
+      window.removeEventListener("postCreated", handlePostCreated);
     };
   }, [navigate]);
 
   return (
     <div className="min-h-full bg-background">
       <div className="container max-w-2xl mx-auto px-4 py-6">
-        <h2 className="text-2xl font-bold text-foreground mb-6">Create Content</h2>
-        
+        <h2 className="text-2xl font-bold text-foreground mb-6">
+          Create Content
+        </h2>
+
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold mb-3">Create Post</h3>
@@ -48,7 +50,8 @@ export default function SharePage() {
                   <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-lg font-semibold mb-2">Coming Soon</h3>
                   <p className="text-muted-foreground">
-                    Event creation functionality will be available soon. Create rallies, town halls, and campaign events!
+                    Event creation functionality will be available soon. Create
+                    rallies, town halls, and campaign events!
                   </p>
                 </div>
               </CardContent>
@@ -69,7 +72,8 @@ export default function SharePage() {
                   <Video className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-lg font-semibold mb-2">Coming Soon</h3>
                   <p className="text-muted-foreground">
-                    Video upload functionality will be available soon. Stay tuned for updates!
+                    Video upload functionality will be available soon. Stay
+                    tuned for updates!
                   </p>
                 </div>
               </CardContent>

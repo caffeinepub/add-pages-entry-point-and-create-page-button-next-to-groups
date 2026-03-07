@@ -1,52 +1,32 @@
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import { useGetUserNotifications, useMarkNotificationsAsRead } from '../hooks/useQueries';
-import { Button } from '@/components/ui/button';
-import { Settings, MessageSquare, Bell, Search, Wallet } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { formatDistanceToNow } from 'date-fns';
-import BuildInfoIndicator from './BuildInfoIndicator';
+import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { Loader2, LogIn, LogOut, Shield, User, Wallet } from "lucide-react";
+import React from "react";
+import { useView } from "../context/ViewContext";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useIsAdmin } from "../hooks/useQueries";
 
-interface HeaderProps {
-  onNavigateToMessages?: () => void;
-  showMessagesButton?: boolean;
-}
-
-export default function Header({ onNavigateToMessages, showMessagesButton = false }: HeaderProps) {
+export default function Header() {
+  const navigate = useNavigate();
   const { login, clear, loginStatus, identity } = useInternetIdentity();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const { data: notifications } = useGetUserNotifications();
-  const markAsRead = useMarkNotificationsAsRead();
+  const { currentView, setCurrentView } = useView();
+  const { data: isAdmin } = useIsAdmin();
 
   const isAuthenticated = !!identity;
-  const disabled = loginStatus === 'logging-in';
+  const isLoggingIn = loginStatus === "logging-in";
 
-  const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
-
-  const handleAuthOrProfile = async () => {
+  const handleAuth = async () => {
     if (isAuthenticated) {
-      navigate({ to: '/profile' });
+      await clear();
+      queryClient.clear();
+      navigate({ to: "/" });
     } else {
       try {
         await login();
       } catch (error: any) {
-        console.error('Login error:', error);
-        if (error.message === 'User is already authenticated') {
+        if (error?.message === "User is already authenticated") {
           await clear();
           setTimeout(() => login(), 300);
         }
@@ -54,137 +34,106 @@ export default function Header({ onNavigateToMessages, showMessagesButton = fals
     }
   };
 
-  const handleLogout = async () => {
-    await clear();
-    queryClient.clear();
-  };
-
-  const handleNotificationClick = () => {
-    if (unreadCount > 0) {
-      markAsRead.mutate();
-    }
-  };
-
   return (
-    <header className="bg-[oklch(0.45_0.12_250)] text-white shadow-md">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">CivWorld</h1>
-        
-        <div className="flex items-center gap-3">
-          {isAuthenticated && (
-            <>
-              <Button
-                onClick={() => navigate({ to: '/wallet' })}
-                variant="ghost"
-                size="icon"
-                className="text-white hover:bg-white/10"
-                title="Wallet"
-              >
-                <Wallet className="h-6 w-6" />
-              </Button>
+    <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border shadow-sm">
+      <div className="flex items-center justify-between px-4 py-3 max-w-2xl mx-auto">
+        {/* Logo */}
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/" })}
+          className="flex items-center gap-2 font-bold text-lg text-primary"
+        >
+          <img
+            src="/assets/generated/civworld-app-icon.dim_1024x1024.png"
+            alt="CivWorld"
+            className="w-8 h-8 rounded-lg object-cover"
+          />
+          <span className="hidden sm:block">CivWorld</span>
+        </button>
 
-              <Button
-                onClick={() => navigate({ to: '/explore' })}
-                variant="ghost"
-                size="icon"
-                className="text-white hover:bg-white/10"
-              >
-                <Search className="h-6 w-6" />
-              </Button>
+        {/* Center: App/Wallet toggle */}
+        {isAuthenticated && (
+          <div className="flex items-center bg-muted rounded-full p-1 gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentView("app");
+                navigate({ to: "/" });
+              }}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                currentView === "app"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              App
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentView("wallet");
+                navigate({ to: "/wallet" });
+              }}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                currentView === "wallet"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Wallet
+            </button>
+          </div>
+        )}
 
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-white hover:bg-white/10 relative"
-                    onClick={handleNotificationClick}
-                  >
-                    <Bell className="h-6 w-6" />
-                    {unreadCount > 0 && (
-                      <Badge 
-                        variant="destructive" 
-                        className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                      >
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="end">
-                  <div className="p-4 border-b">
-                    <h3 className="font-semibold text-lg">Notifications</h3>
-                  </div>
-                  <ScrollArea className="h-96">
-                    {notifications && notifications.length > 0 ? (
-                      <div className="divide-y">
-                        {notifications.map((notification) => (
-                          <div
-                            key={notification.notificationId.toString()}
-                            className={`p-4 hover:bg-muted/50 transition-colors ${
-                              !notification.isRead ? 'bg-blue-50' : ''
-                            }`}
-                          >
-                            <p className="text-sm">{notification.message}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {formatDistanceToNow(new Date(Number(notification.timestamp) / 1000000), { addSuffix: true })}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-8 text-center text-muted-foreground">
-                        <Bell className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                        <p>No notifications yet</p>
-                      </div>
-                    )}
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
-
-              {showMessagesButton && onNavigateToMessages && (
-                <Button
-                  onClick={onNavigateToMessages}
-                  variant="ghost"
-                  size="icon"
-                  className="text-white hover:bg-white/10"
-                >
-                  <MessageSquare className="h-6 w-6" />
-                </Button>
-              )}
-            </>
+        {/* Right actions */}
+        <div className="flex items-center gap-2">
+          {/* Admin link */}
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate({ to: "/admin" })}
+              className="h-9 w-9 rounded-full"
+              title="Admin Panel"
+            >
+              <Shield className="w-4 h-4 text-primary" />
+            </Button>
           )}
 
+          {/* Profile */}
+          {isAuthenticated && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate({ to: "/profile" })}
+              className="h-9 w-9 rounded-full"
+            >
+              <User className="w-4 h-4" />
+            </Button>
+          )}
+
+          {/* Login/Logout */}
           <Button
-            onClick={handleAuthOrProfile}
-            disabled={disabled}
-            variant="secondary"
+            onClick={handleAuth}
+            disabled={isLoggingIn}
             size="sm"
-            className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+            variant={isAuthenticated ? "outline" : "default"}
+            className="rounded-full text-xs px-3 h-8"
           >
-            {disabled ? 'Logging in...' : isAuthenticated ? 'Profile' : 'Login'}
+            {isLoggingIn ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : isAuthenticated ? (
+              <>
+                <LogOut className="w-3 h-3 mr-1" />
+                Logout
+              </>
+            ) : (
+              <>
+                <LogIn className="w-3 h-3 mr-1" />
+                Login
+              </>
+            )}
           </Button>
-
-          {isAuthenticated && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-white hover:bg-white/10"
-                >
-                  <Settings className="h-6 w-6" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <BuildInfoIndicator />
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
         </div>
       </div>
     </header>

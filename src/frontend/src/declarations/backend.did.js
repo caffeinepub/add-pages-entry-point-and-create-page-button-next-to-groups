@@ -24,7 +24,16 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const Time = IDL.Int;
 export const ExternalBlob = IDL.Vec(IDL.Nat8);
+export const CreateGroupArgs = IDL.Record({
+  'creator' : IDL.Principal,
+  'adminIds' : IDL.Vec(IDL.Principal),
+  'name' : IDL.Text,
+  'createdAt' : Time,
+  'description' : IDL.Text,
+  'coverImage' : IDL.Opt(ExternalBlob),
+});
 export const MediaContent = IDL.Record({
   'video' : IDL.Opt(ExternalBlob),
   'text' : IDL.Opt(IDL.Text),
@@ -34,7 +43,45 @@ export const PostType = IDL.Variant({
   'regular' : IDL.Null,
   'newsFeed' : IDL.Null,
 });
-export const Time = IDL.Int;
+export const UserProfile = IDL.Record({
+  'bio' : IDL.Text,
+  'name' : IDL.Text,
+  'profilePhoto' : IDL.Opt(ExternalBlob),
+  'badges' : IDL.Vec(IDL.Text),
+  'civicTokenBalance' : IDL.Nat,
+  'verifiedStatus' : IDL.Bool,
+  'followerCount' : IDL.Nat,
+  'location' : IDL.Text,
+});
+export const Group = IDL.Record({
+  'id' : IDL.Nat,
+  'creator' : IDL.Principal,
+  'name' : IDL.Text,
+  'createdAt' : Time,
+  'description' : IDL.Text,
+  'coverImage' : IDL.Opt(ExternalBlob),
+});
+export const Page = IDL.Record({
+  'owner' : IDL.Principal,
+  'profileImage' : IDL.Opt(ExternalBlob),
+  'pageName' : IDL.Text,
+  'description' : IDL.Text,
+  'creationTime' : Time,
+  'isPrivate' : IDL.Bool,
+  'category' : IDL.Text,
+});
+export const Poll = IDL.Record({
+  'id' : IDL.Nat,
+  'creator' : IDL.Principal,
+  'question' : IDL.Text,
+  'votes' : IDL.Vec(IDL.Nat),
+  'isPublic' : IDL.Bool,
+  'options' : IDL.Vec(IDL.Text),
+});
+export const PostEdit = IDL.Record({
+  'content' : MediaContent,
+  'timestamp' : Time,
+});
 export const Post = IDL.Record({
   'id' : IDL.Nat,
   'postType' : PostType,
@@ -43,16 +90,9 @@ export const Post = IDL.Record({
   'content' : MediaContent,
   'author' : IDL.Principal,
   'groupId' : IDL.Opt(IDL.Nat),
+  'isEdited' : IDL.Bool,
+  'editHistory' : IDL.Vec(PostEdit),
   'timestamp' : Time,
-});
-export const UserProfile = IDL.Record({
-  'bio' : IDL.Text,
-  'name' : IDL.Text,
-  'profilePhoto' : IDL.Opt(ExternalBlob),
-  'badges' : IDL.Vec(IDL.Text),
-  'verifiedStatus' : IDL.Bool,
-  'followerCount' : IDL.Nat,
-  'location' : IDL.Text,
 });
 
 export const idlService = IDL.Service({
@@ -84,17 +124,28 @@ export const idlService = IDL.Service({
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'createNewsFeedPost' : IDL.Func([MediaContent], [IDL.Nat], []),
-  'createPost' : IDL.Func([MediaContent, IDL.Opt(IDL.Nat)], [IDL.Nat], []),
-  'deletePost' : IDL.Func([IDL.Nat], [], []),
-  'getAllPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
+  'createGroup' : IDL.Func([CreateGroupArgs], [IDL.Nat], []),
+  'createPage' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Opt(ExternalBlob), IDL.Bool],
+      [IDL.Nat],
+      [],
+    ),
+  'createPoll' : IDL.Func(
+      [IDL.Text, IDL.Vec(IDL.Text), IDL.Bool],
+      [IDL.Nat],
+      [],
+    ),
+  'createPost' : IDL.Func(
+      [MediaContent, IDL.Opt(IDL.Nat), PostType],
+      [IDL.Nat],
+      [],
+    ),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-  'getCountries' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
-  'getDistrictsByState' : IDL.Func([IDL.Text], [IDL.Vec(IDL.Text)], ['query']),
-  'getNewsFeedPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
-  'getStatesByCountry' : IDL.Func([IDL.Text], [IDL.Vec(IDL.Text)], ['query']),
-  'getUserPosts' : IDL.Func([IDL.Principal], [IDL.Vec(Post)], ['query']),
+  'getGroup' : IDL.Func([IDL.Nat], [IDL.Opt(Group)], ['query']),
+  'getPage' : IDL.Func([IDL.Nat], [IDL.Opt(Page)], ['query']),
+  'getPoll' : IDL.Func([IDL.Nat], [IDL.Opt(Poll)], ['query']),
+  'getPost' : IDL.Func([IDL.Nat], [IDL.Opt(Post)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -123,14 +174,58 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const Time = IDL.Int;
   const ExternalBlob = IDL.Vec(IDL.Nat8);
+  const CreateGroupArgs = IDL.Record({
+    'creator' : IDL.Principal,
+    'adminIds' : IDL.Vec(IDL.Principal),
+    'name' : IDL.Text,
+    'createdAt' : Time,
+    'description' : IDL.Text,
+    'coverImage' : IDL.Opt(ExternalBlob),
+  });
   const MediaContent = IDL.Record({
     'video' : IDL.Opt(ExternalBlob),
     'text' : IDL.Opt(IDL.Text),
     'image' : IDL.Opt(ExternalBlob),
   });
   const PostType = IDL.Variant({ 'regular' : IDL.Null, 'newsFeed' : IDL.Null });
-  const Time = IDL.Int;
+  const UserProfile = IDL.Record({
+    'bio' : IDL.Text,
+    'name' : IDL.Text,
+    'profilePhoto' : IDL.Opt(ExternalBlob),
+    'badges' : IDL.Vec(IDL.Text),
+    'civicTokenBalance' : IDL.Nat,
+    'verifiedStatus' : IDL.Bool,
+    'followerCount' : IDL.Nat,
+    'location' : IDL.Text,
+  });
+  const Group = IDL.Record({
+    'id' : IDL.Nat,
+    'creator' : IDL.Principal,
+    'name' : IDL.Text,
+    'createdAt' : Time,
+    'description' : IDL.Text,
+    'coverImage' : IDL.Opt(ExternalBlob),
+  });
+  const Page = IDL.Record({
+    'owner' : IDL.Principal,
+    'profileImage' : IDL.Opt(ExternalBlob),
+    'pageName' : IDL.Text,
+    'description' : IDL.Text,
+    'creationTime' : Time,
+    'isPrivate' : IDL.Bool,
+    'category' : IDL.Text,
+  });
+  const Poll = IDL.Record({
+    'id' : IDL.Nat,
+    'creator' : IDL.Principal,
+    'question' : IDL.Text,
+    'votes' : IDL.Vec(IDL.Nat),
+    'isPublic' : IDL.Bool,
+    'options' : IDL.Vec(IDL.Text),
+  });
+  const PostEdit = IDL.Record({ 'content' : MediaContent, 'timestamp' : Time });
   const Post = IDL.Record({
     'id' : IDL.Nat,
     'postType' : PostType,
@@ -139,16 +234,9 @@ export const idlFactory = ({ IDL }) => {
     'content' : MediaContent,
     'author' : IDL.Principal,
     'groupId' : IDL.Opt(IDL.Nat),
+    'isEdited' : IDL.Bool,
+    'editHistory' : IDL.Vec(PostEdit),
     'timestamp' : Time,
-  });
-  const UserProfile = IDL.Record({
-    'bio' : IDL.Text,
-    'name' : IDL.Text,
-    'profilePhoto' : IDL.Opt(ExternalBlob),
-    'badges' : IDL.Vec(IDL.Text),
-    'verifiedStatus' : IDL.Bool,
-    'followerCount' : IDL.Nat,
-    'location' : IDL.Text,
   });
   
   return IDL.Service({
@@ -180,21 +268,28 @@ export const idlFactory = ({ IDL }) => {
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'createNewsFeedPost' : IDL.Func([MediaContent], [IDL.Nat], []),
-    'createPost' : IDL.Func([MediaContent, IDL.Opt(IDL.Nat)], [IDL.Nat], []),
-    'deletePost' : IDL.Func([IDL.Nat], [], []),
-    'getAllPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
+    'createGroup' : IDL.Func([CreateGroupArgs], [IDL.Nat], []),
+    'createPage' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Opt(ExternalBlob), IDL.Bool],
+        [IDL.Nat],
+        [],
+      ),
+    'createPoll' : IDL.Func(
+        [IDL.Text, IDL.Vec(IDL.Text), IDL.Bool],
+        [IDL.Nat],
+        [],
+      ),
+    'createPost' : IDL.Func(
+        [MediaContent, IDL.Opt(IDL.Nat), PostType],
+        [IDL.Nat],
+        [],
+      ),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-    'getCountries' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
-    'getDistrictsByState' : IDL.Func(
-        [IDL.Text],
-        [IDL.Vec(IDL.Text)],
-        ['query'],
-      ),
-    'getNewsFeedPosts' : IDL.Func([], [IDL.Vec(Post)], ['query']),
-    'getStatesByCountry' : IDL.Func([IDL.Text], [IDL.Vec(IDL.Text)], ['query']),
-    'getUserPosts' : IDL.Func([IDL.Principal], [IDL.Vec(Post)], ['query']),
+    'getGroup' : IDL.Func([IDL.Nat], [IDL.Opt(Group)], ['query']),
+    'getPage' : IDL.Func([IDL.Nat], [IDL.Opt(Page)], ['query']),
+    'getPoll' : IDL.Func([IDL.Nat], [IDL.Opt(Poll)], ['query']),
+    'getPost' : IDL.Func([IDL.Nat], [IDL.Opt(Post)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],

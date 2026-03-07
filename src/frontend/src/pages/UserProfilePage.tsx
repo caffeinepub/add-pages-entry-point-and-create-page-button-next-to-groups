@@ -1,259 +1,231 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from '@tanstack/react-router';
-import { Principal } from '@dfinity/principal';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useGetUserProfile, useGetUserPosts, useIsFollowing, useFollowUser, useUnfollowUser, useIsUserVerified } from '../hooks/useQueries';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { MapPin, Users, MessageSquare, Loader2, Flag } from 'lucide-react';
-import PostCard from '../components/PostCard';
-import BadgeDisplay from '../components/BadgeDisplay';
-import VerifiedBadge from '../components/VerifiedBadge';
-import ReportModal from '../components/ReportModal';
+import { Principal } from "@dfinity/principal";
+import { useNavigate, useParams } from "@tanstack/react-router";
+import {
+  ArrowLeft,
+  Flag,
+  Loader2,
+  User,
+  UserMinus,
+  UserPlus,
+} from "lucide-react";
+import React, { useState } from "react";
+import { toast } from "sonner";
+import PostCard from "../components/PostCard";
+import ReportModal from "../components/ReportModal";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import {
+  useFollowUser,
+  useGetPosts,
+  useGetUserProfile,
+  useIsFollowing,
+  useIsUserVerified,
+  useUnfollowUser,
+} from "../hooks/useQueries";
 
 export default function UserProfilePage() {
-  const { userId } = useParams({ from: '/profile/$userId' });
+  const { userId } = useParams({ from: "/user/$userId" });
   const navigate = useNavigate();
   const { identity } = useInternetIdentity();
-  const [showReportModal, setShowReportModal] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
-  let userPrincipal: Principal | null = null;
+  // Validate principal
+  let userPrincipal: string | undefined;
   try {
-    userPrincipal = Principal.fromText(userId);
-  } catch (error) {
-    console.error('Invalid principal ID:', error);
+    Principal.fromText(userId);
+    userPrincipal = userId;
+  } catch {
+    userPrincipal = undefined;
   }
 
-  const { data: userProfile, isLoading: profileLoading } = useGetUserProfile(userPrincipal);
-  const { data: userPosts, isLoading: postsLoading } = useGetUserPosts(userPrincipal);
-  const { data: isFollowing, isLoading: followStatusLoading } = useIsFollowing(userPrincipal);
-  const { data: isVerified } = useIsUserVerified(userPrincipal);
+  const { data: userProfile, isLoading: profileLoading } =
+    useGetUserProfile(userPrincipal);
+  const { data: allPosts = [], isLoading: postsLoading } = useGetPosts();
+  const { data: isFollowing = false } = useIsFollowing(userPrincipal);
+  const { data: isVerified = false } = useIsUserVerified(userPrincipal);
+
   const followUser = useFollowUser();
   const unfollowUser = useUnfollowUser();
 
-  const currentUserPrincipal = identity?.getPrincipal();
-  const isOwnProfile = currentUserPrincipal?.toString() === userId;
-  const isAuthenticated = !!identity;
+  const userPosts = allPosts.filter(
+    (p) => userPrincipal && p.author.toString() === userPrincipal,
+  );
 
-  if (!userPrincipal) {
-    return (
-      <div className="min-h-full bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-destructive text-lg">Invalid user ID</p>
-          <Button onClick={() => navigate({ to: '/' })} className="mt-4">
-            Go Home
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const isOwnProfile =
+    identity &&
+    userPrincipal &&
+    identity.getPrincipal().toString() === userPrincipal;
 
-  if (profileLoading) {
-    return (
-      <div className="min-h-full bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="mt-2 text-muted-foreground">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!userProfile) {
-    return (
-      <div className="min-h-full bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground text-lg">User profile not found</p>
-          <Button onClick={() => navigate({ to: '/' })} className="mt-4">
-            Go Home
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const userInitials = userProfile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-
-  const handleFollowToggle = async () => {
+  const handleFollow = async () => {
     if (!userPrincipal) return;
-    
     try {
       if (isFollowing) {
         await unfollowUser.mutateAsync(userPrincipal);
+        toast.success("Unfollowed");
       } else {
         await followUser.mutateAsync(userPrincipal);
+        toast.success("Following!");
       }
-    } catch (error) {
-      console.error('Error toggling follow:', error);
+    } catch {
+      toast.info("Follow feature coming soon!");
     }
   };
 
-  const handleMessage = () => {
-    navigate({ to: '/messages' });
-  };
+  if (profileLoading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  const isFollowActionPending = followUser.isPending || unfollowUser.isPending;
+  if (!userPrincipal) {
+    return (
+      <div className="text-center py-20 px-4">
+        <p className="text-muted-foreground">Invalid user ID</p>
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/" })}
+          className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold"
+        >
+          Go Home
+        </button>
+      </div>
+    );
+  }
 
-  // Convert Principal to bigint for report modal (using 0 for profile reports as per backend spec)
-  const profileReportId = 0n;
+  const profilePhotoUrl = userProfile?.profilePhoto
+    ? (userProfile.profilePhoto as any).getDirectURL?.()
+    : null;
 
   return (
-    <>
-      <div className="min-h-full bg-background pb-20">
-        {/* Profile Header */}
-        <div className="bg-[oklch(0.45_0.12_250)] text-white pt-8 pb-24">
-          <div className="container max-w-2xl mx-auto px-4">
-            <div className="flex flex-col items-center">
-              <Avatar className="h-32 w-32 border-4 border-white shadow-lg">
-                <AvatarImage src="/assets/generated/default-profile.dim_200x200.png" />
-                <AvatarFallback className="bg-white text-[oklch(0.45_0.12_250)] text-3xl font-bold">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-background pb-24">
+      {/* Header */}
+      <div className="sticky top-14 z-10 bg-background/95 backdrop-blur border-b border-border px-4 py-3 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/" })}
+          className="p-2 rounded-full hover:bg-muted transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h1 className="text-lg font-bold text-foreground flex-1 truncate">
+          {userProfile?.name || "User Profile"}
+        </h1>
+        {!isOwnProfile && (
+          <button
+            type="button"
+            onClick={() => setShowReport(true)}
+            className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
+          >
+            <Flag className="w-5 h-5" />
+          </button>
+        )}
+      </div>
 
-        {/* Profile Info Card */}
-        <div className="container max-w-2xl mx-auto px-4 -mt-16">
-          <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <h2 className="text-3xl font-bold text-foreground">{userProfile.name}</h2>
-                {isVerified && <VerifiedBadge size="lg" />}
-              </div>
-              {userProfile.bio && (
-                <p className="text-muted-foreground mb-4">{userProfile.bio}</p>
-              )}
-
-              {/* Badges Display */}
-              {userProfile.badges && userProfile.badges.length > 0 && (
-                <div className="flex justify-center mb-4">
-                  <BadgeDisplay badges={userProfile.badges} size="lg" />
-                </div>
-              )}
-              
-              <div className="flex items-center justify-center gap-6 mb-6 text-sm text-muted-foreground">
-                {userProfile.location && (
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    <span>{userProfile.location}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-1">
-                  <Users className="h-4 w-4" />
-                  <span className="font-semibold text-foreground">
-                    {Number(userProfile.followerCount).toLocaleString()}
-                  </span>
-                  <span>Followers</span>
-                </div>
-              </div>
-
-              {/* Action Buttons - Show for other users' profiles when authenticated */}
-              {isAuthenticated && !isOwnProfile && (
-                <div className="flex gap-3 justify-center flex-wrap">
-                  <Button
-                    onClick={handleFollowToggle}
-                    disabled={isFollowActionPending || followStatusLoading}
-                    className={`
-                      px-8 py-2 font-semibold transition-all duration-200 ease-in-out
-                      ${
-                        isFollowing
-                          ? 'bg-muted hover:bg-muted/80 text-foreground border border-border'
-                          : 'bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)] text-white shadow-md hover:shadow-lg'
-                      }
-                      ${isFollowActionPending || followStatusLoading ? 'opacity-60 cursor-not-allowed' : ''}
-                    `}
-                  >
-                    {isFollowActionPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    {followStatusLoading ? 'Loading...' : isFollowing ? 'Following' : 'Follow'}
-                  </Button>
-                  <Button
-                    onClick={handleMessage}
-                    variant="outline"
-                    className="gap-2 px-6 border-[oklch(0.45_0.12_250)] text-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.45_0.12_250)] hover:text-white transition-all duration-200"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    Message
-                  </Button>
-                  <Button
-                    onClick={() => setShowReportModal(true)}
-                    variant="outline"
-                    className="gap-2 px-6 border-[oklch(0.50_0.12_25)] text-[oklch(0.50_0.12_25)] hover:bg-[oklch(0.50_0.12_25)] hover:text-white transition-all duration-200"
-                  >
-                    <Flag className="h-4 w-4" />
-                    Report
-                  </Button>
-                </div>
-              )}
-
-              {/* Show login prompt for non-authenticated users */}
-              {!isAuthenticated && !isOwnProfile && (
-                <div className="text-sm text-muted-foreground mt-2">
-                  Please log in to follow this user or send messages.
-                </div>
-              )}
-
-              {/* Own profile message */}
-              {isOwnProfile && (
-                <div className="text-sm text-muted-foreground mt-2">
-                  This is your profile. Go to{' '}
-                  <button
-                    onClick={() => navigate({ to: '/profile' })}
-                    className="text-[oklch(0.45_0.12_250)] hover:underline font-medium"
-                  >
-                    your profile page
-                  </button>
-                  {' '}to edit.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Posts Section */}
-          <div className="mb-8">
-            <h3 className="text-xl font-semibold mb-4">Posts</h3>
-            {postsLoading ? (
-              <div className="text-center py-8">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-              </div>
-            ) : userPosts && userPosts.length > 0 ? (
-              <div className="space-y-4">
-                {userPosts.map((post) => <PostCard key={post.id.toString()} post={post} />)}
-              </div>
+      {/* Profile Info */}
+      <div className="bg-card border-b border-border px-4 py-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="w-20 h-20 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center">
+            {profilePhotoUrl ? (
+              <img
+                src={profilePhotoUrl}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
             ) : (
-              <div className="text-center py-12 text-muted-foreground bg-white rounded-lg border border-border">
-                <p>No posts yet.</p>
-              </div>
+              <User className="w-10 h-10 text-primary" />
             )}
           </div>
+          {!isOwnProfile && identity && (
+            <button
+              type="button"
+              onClick={handleFollow}
+              disabled={followUser.isPending || unfollowUser.isPending}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 ${
+                isFollowing
+                  ? "border border-border hover:bg-muted"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+              }`}
+            >
+              {followUser.isPending || unfollowUser.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : isFollowing ? (
+                <>
+                  <UserMinus className="w-4 h-4" /> Unfollow
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4" /> Follow
+                </>
+              )}
+            </button>
+          )}
+        </div>
 
-          {/* Footer */}
-          <footer className="text-center py-8 text-sm text-muted-foreground border-t">
-            <p>
-              © 2025. Built with love using{' '}
-              <a
-                href="https://caffeine.ai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[oklch(0.45_0.12_250)] hover:underline"
-              >
-                caffeine.ai
-              </a>
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold text-foreground">
+              {userProfile?.name || "Anonymous"}
+            </h2>
+            {isVerified && (
+              <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full font-medium">
+                ✓ Verified
+              </span>
+            )}
+          </div>
+          {userProfile?.bio && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {userProfile.bio}
             </p>
-          </footer>
+          )}
+          {userProfile?.location && (
+            <p className="text-xs text-muted-foreground mt-1">
+              📍 {userProfile.location}
+            </p>
+          )}
+        </div>
+
+        <div className="flex gap-6 mt-4">
+          <div className="text-center">
+            <p className="text-lg font-bold text-foreground">
+              {userPosts.length}
+            </p>
+            <p className="text-xs text-muted-foreground">Posts</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-foreground">
+              {Number(userProfile?.followerCount ?? 0)}
+            </p>
+            <p className="text-xs text-muted-foreground">Followers</p>
+          </div>
         </div>
       </div>
 
-      {/* Report Modal */}
+      {/* Posts */}
+      <div className="px-4 py-4 max-w-lg mx-auto">
+        <h3 className="font-semibold text-foreground mb-3">Posts</h3>
+        {postsLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        ) : userPosts.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            No posts yet
+          </div>
+        ) : (
+          userPosts.map((post) => (
+            <PostCard key={post.id.toString()} post={post} />
+          ))
+        )}
+      </div>
+
+      {/* Report Modal — targetId is number, use 0 as placeholder for profile reports */}
       <ReportModal
-        isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
+        isOpen={showReport}
+        onClose={() => setShowReport(false)}
         targetType="profile"
-        targetId={profileReportId}
+        targetId={0}
       />
-    </>
+    </div>
   );
 }

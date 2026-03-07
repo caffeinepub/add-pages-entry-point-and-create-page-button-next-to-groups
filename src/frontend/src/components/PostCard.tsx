@@ -1,375 +1,330 @@
-import { useState } from 'react';
-import { Heart, MessageCircle, Share2, MoreVertical, Flag, BadgeCheck } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { useLikePost, useAddComment, useGetPostComments, useGetUserProfile, useDeletePost, useDeleteComment } from '../hooks/useQueries';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import type { Post, Comment } from '../types';
-import BadgeDisplay from './BadgeDisplay';
-import VerifiedBadge from './VerifiedBadge';
-import EditPostModal from './EditPostModal';
-import ReportModal from './ReportModal';
-import { toast } from 'sonner';
-import { PostType } from '../backend';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Flag,
+  Heart,
+  Loader2,
+  MessageCircle,
+  MoreVertical,
+  Pencil,
+  Share2,
+  Trash2,
+} from "lucide-react";
+import React, { useState } from "react";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useDeletePost, useLikePost, useUnlikePost } from "../hooks/useQueries";
+import type { Post } from "../types";
+import CommentSection from "./CommentSection";
+import EditPostModal from "./EditPostModal";
+import ReportModal from "./ReportModal";
 
 interface PostCardProps {
   post: Post;
+  showComments?: boolean;
 }
 
-export default function PostCard({ post }: PostCardProps) {
-  const [showComments, setShowComments] = useState(false);
-  const [commentText, setCommentText] = useState('');
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
+function timeAgo(timestamp: bigint | number): string {
+  const now = Date.now();
+  const postTime = Number(timestamp) / 1_000_000;
+  const diff = Math.floor((now - postTime) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function getInitials(principal: string): string {
+  return principal.slice(0, 2).toUpperCase();
+}
+
+export default function PostCard({
+  post,
+  showComments = false,
+}: PostCardProps) {
   const { identity } = useInternetIdentity();
   const likePost = useLikePost();
-  const addComment = useAddComment();
+  const unlikePost = useUnlikePost();
   const deletePost = useDeletePost();
-  const { data: comments = [] } = useGetPostComments(post.id);
-  const { data: authorProfile } = useGetUserProfile(post.author);
 
-  const isAuthor = identity?.getPrincipal().toString() === post.author.toString();
-  const isNewsFeed = post.postType === PostType.newsFeed;
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(Number(post.likeCount));
+  const [commentsOpen, setCommentsOpen] = useState(showComments);
+  const [editOpen, setEditOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const isAuthenticated = !!identity;
+  const currentPrincipal = identity?.getPrincipal().toString();
+  const isOwner =
+    isAuthenticated &&
+    currentPrincipal != null &&
+    post.author.toString() === currentPrincipal;
 
   const handleLike = async () => {
-    try {
-      await likePost.mutateAsync(post.id);
-    } catch (error) {
-      console.error('Error liking post:', error);
-    }
-  };
-
-  const handleComment = async () => {
-    if (!commentText.trim()) return;
-
-    try {
-      await addComment.mutateAsync({
-        postId: post.id,
-        content: commentText,
-      });
-      setCommentText('');
-    } catch (error) {
-      console.error('Error adding comment:', error);
+    if (!isAuthenticated) return;
+    if (liked) {
+      setLiked(false);
+      setLikeCount((c) => c - 1);
+      try {
+        await unlikePost.mutateAsync(post.id);
+      } catch {
+        setLiked(true);
+        setLikeCount((c) => c + 1);
+      }
+    } else {
+      setLiked(true);
+      setLikeCount((c) => c + 1);
+      try {
+        await likePost.mutateAsync(post.id);
+      } catch {
+        setLiked(false);
+        setLikeCount((c) => c - 1);
+      }
     }
   };
 
   const handleDelete = async () => {
-    if (deletePost.isPending) return;
-    
     try {
       await deletePost.mutateAsync(post.id);
-      setShowDeleteDialog(false);
-    } catch (error) {
-      console.error('Error deleting post:', error);
+    } catch {
+      // error handled by mutation
     }
+    setDeleteDialogOpen(false);
   };
 
   const handleShare = () => {
-    toast.success('Share functionality coming soon!');
-  };
-
-  const formatTimestamp = (timestamp: bigint) => {
-    const date = new Date(Number(timestamp) / 1000000);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
-
-  return (
-    <>
-      <div className="bg-white border border-border rounded-lg shadow-sm overflow-hidden">
-        {/* Post Header */}
-        <div className="flex items-start justify-between p-4 pb-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              {authorProfile?.profilePhoto ? (
-                <AvatarImage src={authorProfile.profilePhoto.getDirectURL()} alt={authorProfile.name} />
-              ) : (
-                <AvatarFallback>{authorProfile?.name?.[0] || 'U'}</AvatarFallback>
-              )}
-            </Avatar>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm">{authorProfile?.name || 'Anonymous'}</span>
-                {authorProfile?.verifiedStatus && <VerifiedBadge size="sm" />}
-                {isNewsFeed && (
-                  <Badge variant="default" className="bg-[oklch(0.45_0.12_250)] text-white text-xs gap-1">
-                    <BadgeCheck className="h-3 w-3" />
-                    News
-                  </Badge>
-                )}
-                {authorProfile?.badges && authorProfile.badges.length > 0 && (
-                  <BadgeDisplay badges={authorProfile.badges} size="sm" maxDisplay={2} />
-                )}
-              </div>
-              <span className="text-xs text-muted-foreground">{formatTimestamp(post.timestamp)}</span>
-            </div>
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-[oklch(0.45_0.12_250)]"
-              >
-                <MoreVertical className="h-5 w-5 text-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 border-[oklch(0.70_0.02_250)]">
-              {isAuthor && (
-                <>
-                  <DropdownMenuItem 
-                    onClick={() => setShowEditModal(true)}
-                    className="cursor-pointer focus:bg-muted focus:text-foreground"
-                  >
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => setShowDeleteDialog(true)} 
-                    className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
-                  >
-                    Delete
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                </>
-              )}
-              <DropdownMenuItem 
-                onClick={() => setShowReportModal(true)} 
-                className="cursor-pointer text-[oklch(0.45_0.12_25)] focus:bg-[oklch(0.45_0.12_25)]/10 focus:text-[oklch(0.45_0.12_25)]"
-              >
-                <Flag className="h-4 w-4 mr-2" />
-                Report
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Post Text Content */}
-        {post.content.text && (
-          <div className="px-4 pb-3">
-            <p className="text-sm whitespace-pre-wrap">{post.content.text}</p>
-          </div>
-        )}
-
-        {/* Post Media - Full Width Inline Display */}
-        {post.content.image && (
-          <div className="w-full bg-muted">
-            <img
-              src={post.content.image.getDirectURL()}
-              alt="Post content"
-              className="w-full h-auto max-h-[600px] object-contain"
-            />
-          </div>
-        )}
-
-        {post.content.video && (
-          <div className="w-full bg-black">
-            <video
-              src={post.content.video.getDirectURL()}
-              controls
-              className="w-full h-auto max-h-[600px]"
-            />
-          </div>
-        )}
-
-        {/* Post Actions */}
-        <div className="flex items-center justify-center gap-6 py-3 px-4 border-t border-border">
-          <Button variant="ghost" size="sm" className="gap-2" onClick={handleLike} disabled={likePost.isPending}>
-            <Heart className="h-4 w-4" />
-            <span className="text-sm">{Number(post.likeCount)}</span>
-          </Button>
-
-          <Button variant="ghost" size="sm" className="gap-2" onClick={() => setShowComments(!showComments)}>
-            <MessageCircle className="h-4 w-4" />
-            <span className="text-sm">{comments.length}</span>
-          </Button>
-
-          <Button variant="ghost" size="sm" className="gap-2" onClick={handleShare}>
-            <Share2 className="h-4 w-4" />
-            <span className="text-sm">Share</span>
-          </Button>
-        </div>
-
-        {/* Comments Section */}
-        {showComments && (
-          <div className="px-4 pb-4 pt-2 border-t border-border space-y-3">
-            {comments.map((comment, index) => (
-              <CommentItem key={index} comment={comment} postId={post.id} />
-            ))}
-
-            <div className="flex gap-2">
-              <Textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Write a comment..."
-                rows={2}
-                className="resize-none"
-              />
-              <Button onClick={handleComment} disabled={!commentText.trim() || addComment.isPending}>
-                {addComment.isPending ? 'Posting...' : 'Post'}
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-white z-[10000]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold">Delete Post</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              Are you sure you want to delete this post? This action cannot be undone and will remove all comments and likes associated with it.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletePost.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDelete} 
-              disabled={deletePost.isPending}
-              className="bg-destructive hover:bg-destructive/90 text-white"
-            >
-              {deletePost.isPending ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Edit Post Modal */}
-      <EditPostModal post={post} isOpen={showEditModal} onClose={() => setShowEditModal(false)} />
-
-      {/* Report Modal */}
-      <ReportModal
-        isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
-        targetType="post"
-        targetId={post.id}
-      />
-    </>
-  );
-}
-
-interface CommentItemProps {
-  comment: Comment;
-  postId: bigint;
-}
-
-function CommentItem({ comment, postId }: CommentItemProps) {
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const { identity } = useInternetIdentity();
-  const { data: commenterProfile } = useGetUserProfile(comment.author);
-  const deleteComment = useDeleteComment();
-
-  const isCommentAuthor = identity?.getPrincipal().toString() === comment.author.toString();
-
-  const handleDeleteComment = async () => {
-    try {
-      await deleteComment.mutateAsync(postId);
-      setShowDeleteDialog(false);
-    } catch (error) {
-      console.error('Error deleting comment:', error);
+    if (navigator.share) {
+      navigator.share({ title: "CivWorld Post", url: window.location.href });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
     }
   };
 
+  const imageUrl = post.content.image
+    ? (() => {
+        try {
+          return (post.content.image as any).getDirectURL?.() ?? null;
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+
+  const videoUrl = post.content.video
+    ? (() => {
+        try {
+          return (post.content.video as any).getDirectURL?.() ?? null;
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+
+  // Check if post has been edited (new field from backend)
+  const isEdited = (post as any).isEdited === true;
+
   return (
     <>
-      <div className="flex gap-2 group">
-        <Avatar className="h-8 w-8 flex-shrink-0">
-          {commenterProfile?.profilePhoto ? (
-            <AvatarImage src={commenterProfile.profilePhoto.getDirectURL()} alt={commenterProfile.name} />
-          ) : (
-            <AvatarFallback>{commenterProfile?.name?.[0] || 'U'}</AvatarFallback>
-          )}
-        </Avatar>
-        <div className="flex-1 bg-muted rounded-lg p-2 relative">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-semibold text-xs">{commenterProfile?.name || 'Anonymous'}</span>
-                {commenterProfile?.verifiedStatus && <VerifiedBadge size="sm" />}
-              </div>
-              <p className="text-sm">{comment.content}</p>
+      <article className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden mb-3">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
+              {getInitials(post.author.toString())}
             </div>
-            
+            <div>
+              <p className="text-sm font-semibold text-foreground leading-tight">
+                {post.author.toString().slice(0, 12)}...
+              </p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs text-muted-foreground">
+                  {timeAgo(post.timestamp)}
+                </p>
+                {isEdited && (
+                  <span className="text-xs text-muted-foreground/70 italic">
+                    · Edited
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Three-dot menu — only show if authenticated */}
+          {isAuthenticated && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background/80 focus-visible:ring-2 focus-visible:ring-[oklch(0.45_0.12_250)]"
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full"
                 >
-                  <MoreVertical className="h-4 w-4 text-foreground" />
+                  <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40 border-[oklch(0.70_0.02_250)]">
-                {isCommentAuthor && (
+              <DropdownMenuContent align="end" className="w-44">
+                {isOwner ? (
                   <>
-                    <DropdownMenuItem 
-                      onClick={() => setShowDeleteDialog(true)} 
-                      className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
+                    <DropdownMenuItem
+                      onClick={() => setEditOpen(true)}
+                      className="gap-2"
                     >
+                      <Pencil className="w-4 h-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setDeleteDialogOpen(true)}
+                      className="gap-2 text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
                       Delete
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
                   </>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={() => setReportOpen(true)}
+                    className="gap-2"
+                  >
+                    <Flag className="w-4 h-4" />
+                    Report
+                  </DropdownMenuItem>
                 )}
-                <DropdownMenuItem 
-                  onClick={() => setShowReportModal(true)} 
-                  className="cursor-pointer text-[oklch(0.45_0.12_25)] focus:bg-[oklch(0.45_0.12_25)]/10 focus:text-[oklch(0.45_0.12_25)]"
-                >
-                  <Flag className="h-4 w-4 mr-2" />
-                  Report
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
+          )}
         </div>
-      </div>
 
-      {/* Delete Comment Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="bg-white z-[10000]">
+        {/* Content */}
+        {post.content.text && (
+          <div className="px-4 pb-3">
+            <p className="text-sm text-foreground leading-relaxed">
+              {post.content.text}
+            </p>
+          </div>
+        )}
+
+        {imageUrl && (
+          <div className="w-full">
+            <img
+              src={imageUrl}
+              alt="Post media"
+              className="w-full max-h-80 object-cover"
+            />
+          </div>
+        )}
+
+        {videoUrl && (
+          <div className="w-full">
+            <video
+              src={videoUrl}
+              controls
+              className="w-full max-h-80 object-cover"
+            >
+              <track kind="captions" />
+            </video>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 px-3 py-2 border-t border-border/50">
+          <button
+            type="button"
+            onClick={handleLike}
+            disabled={!isAuthenticated}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all min-h-[44px] ${
+              liked
+                ? "text-red-500 bg-red-50 dark:bg-red-950/30"
+                : "text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+            } disabled:opacity-50`}
+          >
+            <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
+            <span>{likeCount}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCommentsOpen(!commentsOpen)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all min-h-[44px]"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>Comment</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleShare}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all min-h-[44px] ml-auto"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Comments */}
+        {commentsOpen && (
+          <div className="border-t border-border/50">
+            <CommentSection postId={String(post.id)} />
+          </div>
+        )}
+      </article>
+
+      {/* Edit Modal — only for post owner */}
+      {isOwner && editOpen && (
+        <EditPostModal
+          post={post}
+          open={editOpen}
+          onOpenChange={(v) => setEditOpen(v)}
+        />
+      )}
+
+      {/* Report Modal — only for non-owners */}
+      {!isOwner && (
+        <ReportModal
+          isOpen={reportOpen}
+          onClose={() => setReportOpen(false)}
+          targetType="post"
+          targetId={Number(post.id)}
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold">Delete Comment</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              Are you sure you want to delete this comment? This action cannot be undone.
+            <AlertDialogTitle>Delete Post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteComment.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteComment} 
-              disabled={deleteComment.isPending}
-              className="bg-destructive hover:bg-destructive/90 text-white"
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteComment.isPending ? 'Deleting...' : 'Delete'}
+              {deletePost.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Report Comment Modal */}
-      <ReportModal
-        isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
-        targetType="comment"
-        targetId={postId}
-      />
     </>
   );
 }

@@ -1,127 +1,204 @@
-import { useState, useEffect } from 'react';
-import { useParams } from '@tanstack/react-router';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useGetGroupById, useGetGroupMembers, useGetGroupPosts, useJoinGroup, useIsUserInGroup } from '../hooks/useQueries';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, UserPlus, UserCheck } from 'lucide-react';
-import PostCard from '../components/PostCard';
-import CreateGroupPostModal from '../components/CreateGroupPostModal';
+import { useNavigate, useParams } from "@tanstack/react-router";
+import {
+  ArrowLeft,
+  Loader2,
+  Plus,
+  UserMinus,
+  UserPlus,
+  Users,
+} from "lucide-react";
+import React, { useState } from "react";
+import { toast } from "sonner";
+import CreateGroupPostModal from "../components/CreateGroupPostModal";
+import PostCard from "../components/PostCard";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import {
+  useGetGroup,
+  useGetGroupMembers,
+  useGetGroupPosts,
+  useIsUserInGroup,
+  useJoinGroup,
+  useLeaveGroup,
+} from "../hooks/useQueries";
+import type { Post } from "../types";
+import { getBackendErrorMessage } from "../utils/backendErrors";
 
 export default function GroupDetailPage() {
-  const { groupId } = useParams({ from: '/groups/$groupId' });
+  const { groupId } = useParams({ from: "/groups/$groupId" });
+  const navigate = useNavigate();
   const { identity } = useInternetIdentity();
-  const groupIdBigInt = BigInt(groupId);
-  
-  const { data: group, isLoading: groupLoading } = useGetGroupById(groupIdBigInt);
-  const { data: members, isLoading: membersLoading } = useGetGroupMembers(groupIdBigInt);
-  const { data: posts, isLoading: postsLoading } = useGetGroupPosts(groupIdBigInt);
-  const { data: isMember } = useIsUserInGroup(groupIdBigInt, identity?.getPrincipal() || null);
+  const [showCreatePost, setShowCreatePost] = useState(false);
+
+  const groupIdNum = Number(groupId);
+
+  const { data: group, isLoading: groupLoading } = useGetGroup(groupIdNum);
+  const { data: members = [] } = useGetGroupMembers(groupIdNum);
+  const { data: posts = [], isLoading: postsLoading } =
+    useGetGroupPosts(groupIdNum);
+  const { data: isMember = false } = useIsUserInGroup(groupIdNum);
+
   const joinGroup = useJoinGroup();
-  
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [createPostModalOpen, setCreatePostModalOpen] = useState(false);
+  const leaveGroup = useLeaveGroup();
 
-  useEffect(() => {
-    if (group?.coverImage) {
-      setImageUrl(group.coverImage.getDirectURL());
+  const handleJoin = async () => {
+    try {
+      await joinGroup.mutateAsync(groupIdNum);
+      toast.success("Joined group!");
+    } catch (err) {
+      toast.error(getBackendErrorMessage(err));
     }
-  }, [group]);
+  };
 
-  const handleJoinGroup = () => {
-    joinGroup.mutate(groupIdBigInt);
+  const handleLeave = async () => {
+    try {
+      await leaveGroup.mutateAsync(groupIdNum);
+      toast.success("Left group");
+    } catch (err) {
+      toast.error(getBackendErrorMessage(err));
+    }
   };
 
   if (groupLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      <div className="flex justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!group) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="text-center py-20">
         <p className="text-muted-foreground">Group not found</p>
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/communities" })}
+          className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold"
+        >
+          Back to Communities
+        </button>
       </div>
     );
   }
 
+  const coverUrl = group.coverImage
+    ? (group.coverImage as any).getDirectURL?.()
+    : null;
+  const isCreator =
+    identity && group.creator.toString() === identity.getPrincipal().toString();
+
   return (
-    <div className="min-h-full bg-background">
-      <div className="container max-w-2xl mx-auto px-4 py-6">
-        <Card className="mb-6">
-          {imageUrl && (
-            <div className="w-full h-64 overflow-hidden rounded-t-lg">
-              <img src={imageUrl} alt={group.name} className="w-full h-full object-cover" />
+    <div className="min-h-screen bg-background pb-24">
+      {/* Header */}
+      <div className="sticky top-14 z-10 bg-background/95 backdrop-blur border-b border-border px-4 py-3 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/communities" })}
+          className="p-2 rounded-full hover:bg-muted transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h1 className="text-lg font-bold text-foreground flex-1 truncate">
+          {group.name}
+        </h1>
+      </div>
+
+      {/* Cover Image */}
+      {coverUrl && (
+        <div className="w-full h-40 overflow-hidden">
+          <img
+            src={coverUrl}
+            alt={group.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+
+      {/* Group Info */}
+      <div className="px-4 py-4">
+        <div className="bg-card border border-border rounded-2xl p-4 mb-4">
+          <h2 className="text-xl font-bold text-foreground">{group.name}</h2>
+          {group.description && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {group.description}
+            </p>
+          )}
+          <div className="flex items-center gap-4 mt-3">
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Users className="w-4 h-4" />
+              <span>{members.length} members</span>
+            </div>
+          </div>
+
+          {identity && !isCreator && (
+            <div className="mt-3">
+              {isMember ? (
+                <button
+                  type="button"
+                  onClick={handleLeave}
+                  disabled={leaveGroup.isPending}
+                  className="flex items-center gap-2 px-4 py-2 border border-border rounded-xl text-sm font-medium hover:bg-muted transition-all disabled:opacity-50"
+                >
+                  {leaveGroup.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <UserMinus className="w-4 h-4" />
+                  )}
+                  Leave Group
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleJoin}
+                  disabled={joinGroup.isPending}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-50"
+                >
+                  {joinGroup.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <UserPlus className="w-4 h-4" />
+                  )}
+                  Join Group
+                </button>
+              )}
             </div>
           )}
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <CardTitle className="text-2xl mb-2">{group.name}</CardTitle>
-                <CardDescription className="text-base">{group.description}</CardDescription>
-                <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <span>{members?.length || 0} members</span>
-                </div>
-              </div>
-              <Button
-                onClick={handleJoinGroup}
-                disabled={isMember || joinGroup.isPending}
-                className={isMember ? 'bg-green-600 hover:bg-green-700' : 'bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)]'}
-              >
-                {isMember ? (
-                  <>
-                    <UserCheck className="h-4 w-4 mr-2" />
-                    Joined
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Join
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardHeader>
-        </Card>
+        </div>
 
-        {isMember && (
-          <div className="mb-6">
-            <Button
-              onClick={() => setCreatePostModalOpen(true)}
-              className="w-full bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)]"
+        {/* Posts */}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-foreground">Posts</h3>
+          {isMember && (
+            <button
+              type="button"
+              onClick={() => setShowCreatePost(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-all"
             >
-              Create Post in Group
-            </Button>
-          </div>
-        )}
+              <Plus className="w-4 h-4" />
+              Post
+            </button>
+          )}
+        </div>
 
-        <h3 className="text-xl font-semibold mb-4">Group Posts</h3>
-        
         {postsLoading ? (
-          <div className="text-center py-12">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
-        ) : posts && posts.length > 0 ? (
-          <div className="space-y-4">
-            {posts.map((post) => (
-              <PostCard key={post.id.toString()} post={post} />
-            ))}
+        ) : posts.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            No posts yet in this group
           </div>
         ) : (
-          <div className="text-center py-12 text-muted-foreground">
-            <p>No posts in this group yet. Be the first to post!</p>
-          </div>
+          (posts as Post[])
+            .filter(Boolean)
+            .map((post) => <PostCard key={post.id.toString()} post={post} />)
         )}
       </div>
 
-      <CreateGroupPostModal 
-        open={createPostModalOpen} 
-        onOpenChange={setCreatePostModalOpen}
-        groupId={groupIdBigInt}
+      <CreateGroupPostModal
+        open={showCreatePost}
+        onClose={() => setShowCreatePost(false)}
+        groupId={groupIdNum}
       />
     </div>
   );

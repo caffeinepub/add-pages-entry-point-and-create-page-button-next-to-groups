@@ -1,53 +1,44 @@
-import { useGetAllPosts } from '../hooks/useQueries';
-import CreatePostCard from '../components/CreatePostCard';
-import PostCard from '../components/PostCard';
+import { Loader2, MessageSquare } from "lucide-react";
+import React from "react";
+import CreatePostCard from "../components/CreatePostCard";
+import PostCard from "../components/PostCard";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useGetPosts } from "../hooks/useQueries";
+import type { Post } from "../types";
 
 export default function DiscussionsPage() {
-  const { data: posts = [], isLoading } = useGetAllPosts();
+  const { data: posts = [], isLoading, refetch } = useGetPosts();
+  const { identity } = useInternetIdentity();
 
   return (
-    <div className="min-h-full bg-background">
-      <div className="container max-w-4xl mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Discussions</h1>
-          <p className="text-muted-foreground">Share your thoughts and engage in civic conversations</p>
-        </div>
-
-        {/* Integrated Post Creation */}
-        <div className="mb-6">
-          <CreatePostCard />
-        </div>
-
-        {/* Discussion Feed */}
-        {isLoading ? (
-          <div className="text-center py-12">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          </div>
-        ) : posts.length > 0 ? (
-          <div className="space-y-6">
-            {posts.map((post) => (
-              <PostCard key={post.id.toString()} post={post} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16">
-            <img 
-              src="/assets/generated/debate-discussion-icon.dim_32x32.png" 
-              alt="No discussions" 
-              className="h-16 w-16 mx-auto mb-4 opacity-50"
-            />
-            <p className="text-muted-foreground text-lg mb-2">No discussions yet</p>
-            <p className="text-sm text-muted-foreground">Be the first to start a conversation</p>
-          </div>
-        )}
+    <div className="min-h-screen bg-background pb-24">
+      <div className="sticky top-14 z-10 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
+        <h1 className="text-lg font-bold text-foreground">Discussions</h1>
       </div>
 
-      <footer className="mt-16 py-8 border-t border-border bg-muted/30">
-        <div className="container max-w-4xl mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© 2025. Built with ❤️ using <a href="https://caffeine.ai" target="_blank" rel="noopener noreferrer" className="text-[oklch(0.45_0.12_250)] hover:underline">caffeine.ai</a></p>
-        </div>
-      </footer>
+      <div className="px-4 py-4 max-w-lg mx-auto">
+        {identity && <CreatePostCard onPostCreated={() => refetch()} />}
+
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-12">
+            <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground font-medium">
+              No discussions yet
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Be the first to start a discussion!
+            </p>
+          </div>
+        ) : (
+          (posts as Post[])
+            .filter(Boolean)
+            .map((post) => <PostCard key={post.id.toString()} post={post} />)
+        )}
+      </div>
     </div>
   );
 }
-

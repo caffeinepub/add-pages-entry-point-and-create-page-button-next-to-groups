@@ -1,121 +1,151 @@
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Wallet, ArrowUpRight, ArrowDownLeft, Clock, AlertCircle } from 'lucide-react';
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, ChevronRight, Coins, Star, TrendingUp } from "lucide-react";
+import CVTBalanceCard from "../components/CVTBalanceCard";
+import VerificationStatusCard from "../components/VerificationStatusCard";
+import WalletView from "../components/WalletView";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useGetCallerUserProfile, useGetWallet } from "../hooks/useQueries";
 
 export default function WalletPage() {
+  const navigate = useNavigate();
   const { identity } = useInternetIdentity();
-  const isAuthenticated = !!identity;
+  const { data: wallet, isLoading: walletLoading } = useGetWallet();
+  const { data: userProfile, isLoading: profileLoading } =
+    useGetCallerUserProfile();
 
-  if (!isAuthenticated) {
+  const isLoading = walletLoading || profileLoading;
+
+  if (!identity) {
     return (
-      <div className="container max-w-2xl mx-auto px-4 py-8">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-3 bg-[oklch(0.45_0.12_250)]/10 rounded-full">
-                <Wallet className="h-6 w-6 text-[oklch(0.45_0.12_250)]" />
-              </div>
-              <CardTitle>Wallet</CardTitle>
-            </div>
-            <CardDescription>
-              Please log in to access your wallet
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 pb-24">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+            <Coins size={32} className="text-primary" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">Your Wallet</h2>
+          <p className="text-muted-foreground text-sm">
+            Please log in to view your wallet and token balance.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/profile" })}
+            className="px-6 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-semibold"
+          >
+            Go to Login
+          </button>
+        </div>
       </div>
     );
   }
 
+  const tokenBalance = userProfile?.civicTokenBalance
+    ? userProfile.civicTokenBalance
+    : BigInt(0);
+  const isVerified = userProfile?.verifiedStatus ?? false;
+
   return (
-    <div className="container max-w-2xl mx-auto px-4 py-8 pb-24">
-      <div className="space-y-6">
-        {/* Wallet Header */}
-        <Card>
-          <CardHeader>
+    <div className="min-h-screen bg-background pb-28">
+      {/* Page Header */}
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-border/30 px-4 py-3 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/" })}
+          className="p-2 rounded-full hover:bg-muted/60 transition-colors"
+        >
+          <ArrowLeft size={20} className="text-foreground" />
+        </button>
+        <h1 className="text-lg font-bold text-foreground">My Wallet</h1>
+      </div>
+
+      <div className="px-4 py-4 space-y-4">
+        {/* CVT Balance Card */}
+        {isLoading ? (
+          <Skeleton className="h-40 w-full rounded-2xl" />
+        ) : (
+          <CVTBalanceCard balance={tokenBalance} />
+        )}
+
+        {/* CivPoints Quick Access Card */}
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow rounded-2xl border-border/40"
+          onClick={() => navigate({ to: "/wallet-points" })}
+        >
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-[oklch(0.45_0.12_250)]/10 rounded-full">
-                  <Wallet className="h-6 w-6 text-[oklch(0.45_0.12_250)]" />
+                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                  <Star size={20} className="text-amber-500" />
                 </div>
                 <div>
-                  <CardTitle>Your Wallet</CardTitle>
-                  <CardDescription>Manage your CivWorld tokens</CardDescription>
+                  <p className="text-sm font-semibold text-foreground">
+                    CivPoints
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {isLoading
+                      ? "..."
+                      : `${wallet?.civPoints?.toFixed(0) ?? 0} CP earned`}
+                  </p>
                 </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-[oklch(0.45_0.12_250)] to-[oklch(0.35_0.12_250)] mb-4">
-                <img 
-                  src="/assets/generated/civ-token-icon.dim_128x128.png" 
-                  alt="CIV Token"
-                  className="w-12 h-12"
-                />
-              </div>
-              <div className="text-4xl font-bold mb-2">0.00 CIV</div>
-              <p className="text-sm text-muted-foreground">CivWorld Tokens</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-4">
-          <Button 
-            variant="outline" 
-            className="h-auto py-6 flex flex-col gap-2"
-            disabled
-          >
-            <ArrowUpRight className="h-5 w-5" />
-            <span>Send</span>
-          </Button>
-          <Button 
-            variant="outline" 
-            className="h-auto py-6 flex flex-col gap-2"
-            disabled
-          >
-            <ArrowDownLeft className="h-5 w-5" />
-            <span>Receive</span>
-          </Button>
-        </div>
-
-        {/* Coming Soon Notice */}
-        <Card className="border-[oklch(0.45_0.12_250)]/20 bg-[oklch(0.45_0.12_250)]/5">
-          <CardContent className="pt-6">
-            <div className="flex gap-3">
-              <AlertCircle className="h-5 w-5 text-[oklch(0.45_0.12_250)] flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-semibold mb-1">Wallet Features Coming Soon</h3>
-                <p className="text-sm text-muted-foreground">
-                  CivWorld wallet functionality is currently in development. Soon you'll be able to:
-                </p>
-                <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
-                  <li>Send and receive CIV tokens</li>
-                  <li>View transaction history</li>
-                  <li>Earn rewards for civic engagement</li>
-                  <li>Support causes and campaigns</li>
-                </ul>
+              <div className="flex items-center gap-2">
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Daily</p>
+                  <p className="text-sm font-bold text-amber-500">
+                    {isLoading
+                      ? "..."
+                      : `${wallet?.dailyEarned?.toFixed(0) ?? 0}/100`}
+                  </p>
+                </div>
+                <ChevronRight size={18} className="text-muted-foreground" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              <CardTitle>Recent Activity</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>No transactions yet</p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Level & Stats Card */}
+        {!isLoading && wallet && (
+          <Card className="rounded-2xl border-border/40">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <TrendingUp size={20} className="text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Civic Level
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Level {wallet.level?.toFixed(0) ?? 1}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-muted/40 rounded-xl p-3 text-center">
+                  <p className="text-lg font-bold text-foreground">
+                    {wallet.totalEarned?.toFixed(0) ?? 0}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Total Earned</p>
+                </div>
+                <div className="bg-muted/40 rounded-xl p-3 text-center">
+                  <p className="text-lg font-bold text-foreground">
+                    {wallet.dailyEarned?.toFixed(0) ?? 0}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Today's Points
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Verification Status */}
+        {!isLoading && <VerificationStatusCard verified={isVerified} />}
+
+        {/* Wallet View (Transaction History / Quick Actions) */}
+        <WalletView />
       </div>
     </div>
   );

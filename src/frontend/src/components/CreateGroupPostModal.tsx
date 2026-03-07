@@ -1,151 +1,213 @@
-import { useState } from 'react';
-import { useCreatePost } from '../hooks/useQueries';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ExternalBlob } from '../backend';
-import { toast } from 'sonner';
-import { X } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Image, Loader2, X } from "lucide-react";
+import type React from "react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { ExternalBlob, type MediaContent, PostType } from "../backend";
+import { useActor } from "../hooks/useActor";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useCreatePost } from "../hooks/useQueries";
+import { formatBackendError } from "../utils/backendErrors";
 
 interface CreateGroupPostModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  groupId: bigint;
+  onClose: () => void;
+  groupId: number;
 }
 
-export default function CreateGroupPostModal({ open, onOpenChange, groupId }: CreateGroupPostModalProps) {
-  const [text, setText] = useState('');
-  const [image, setImage] = useState<File | null>(null);
+export default function CreateGroupPostModal({
+  open,
+  onClose,
+  groupId,
+}: CreateGroupPostModalProps) {
+  const [text, setText] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const { actor, isFetching: actorFetching } = useActor();
+  const { identity } = useInternetIdentity();
   const createPost = useCreatePost();
 
+  const isActorReady = !!actor && !actorFetching;
+  const isAuthenticated = !!identity;
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
-  const handleRemoveImage = () => {
-    setImage(null);
+  const clearMedia = () => {
+    setImageFile(null);
     setImagePreview(null);
+    setUploadProgress(0);
+    if (imageInputRef.current) imageInputRef.current.value = "";
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleClose = () => {
+    setText("");
+    clearMedia();
+    onClose();
+  };
 
-    if (!text.trim() && !image) {
-      toast.error('Please add text or an image');
+  const handleSubmit = async () => {
+    if (!text.trim() && !imageFile) {
+      toast.error("Please add some content to your post.");
+      return;
+    }
+    if (!isAuthenticated) {
+      toast.error("Please log in to create a post.");
+      return;
+    }
+    if (!isActorReady) {
+      toast.error("Still connecting to the network. Please try again.");
       return;
     }
 
     try {
-      let imageBlob: ExternalBlob | undefined = undefined;
+      let imageBlob: ExternalBlob | undefined;
 
-      if (image) {
-        const arrayBuffer = await image.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        imageBlob = ExternalBlob.fromBytes(uint8Array).withUploadProgress((percentage) => {
-          setUploadProgress(percentage);
-        });
+      if (imageFile) {
+        const bytes = new Uint8Array(await imageFile.arrayBuffer());
+        imageBlob = ExternalBlob.fromBytes(bytes).withUploadProgress((pct) =>
+          setUploadProgress(pct),
+        );
       }
 
+      const content: MediaContent = {
+        text: text.trim() || undefined,
+        image: imageBlob,
+        video: undefined,
+      };
+
       await createPost.mutateAsync({
-        content: {
-          text: text.trim() || undefined,
-          image: imageBlob,
-        },
-        groupId,
+        content,
+        groupId: BigInt(groupId),
+        postType: PostType.regular,
       });
 
-      setText('');
-      setImage(null);
-      setImagePreview(null);
-      setUploadProgress(0);
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to create post:', error);
+      handleClose();
+    } catch (error: unknown) {
+      const msg = formatBackendError(error);
+      toast.error(msg);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) handleClose();
+      }}
+    >
+      <DialogContent className="max-w-lg mx-auto">
         <DialogHeader>
           <DialogTitle>Create Group Post</DialogTitle>
-          <DialogDescription>
-            Share something with your group members
-          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="text">Post Content</Label>
-            <Textarea
-              id="text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="What's on your mind?"
-              rows={4}
-            />
-          </div>
-          <div>
-            <Label htmlFor="image">Add Image (optional)</Label>
-            <Input
-              id="image"
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-            />
-          </div>
-          {imagePreview && (
-            <div className="relative">
-              <img src={imagePreview} alt="Preview" className="w-full rounded-lg" />
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2"
-                onClick={handleRemoveImage}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+
+        <div className="space-y-3">
+          {!isActorReady && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
+              <Loader2 size={14} className="animate-spin" />
+              <span>Connecting to network…</span>
             </div>
           )}
-          {uploadProgress > 0 && uploadProgress < 100 && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Uploading...</span>
-                <span>{uploadProgress}%</span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-2">
+
+          <textarea
+            className="w-full bg-muted/40 rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[100px]"
+            placeholder="Share something with the group…"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            disabled={createPost.isPending}
+          />
+
+          {imagePreview && (
+            <div className="relative rounded-xl overflow-hidden">
+              <img
+                src={imagePreview}
+                alt="Preview"
+                className="w-full max-h-56 object-cover rounded-xl"
+              />
+              <button
+                type="button"
+                onClick={clearMedia}
+                className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          {createPost.isPending &&
+            uploadProgress > 0 &&
+            uploadProgress < 100 && (
+              <div className="w-full bg-muted rounded-full h-1.5">
                 <div
-                  className="bg-[oklch(0.45_0.12_250)] h-2 rounded-full transition-all"
+                  className="bg-primary h-1.5 rounded-full transition-all"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
+            )}
+
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex gap-2">
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageChange}
+              />
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={createPost.isPending || !isActorReady}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1.5 rounded-lg hover:bg-muted disabled:opacity-50"
+              >
+                <Image size={16} />
+                <span>Photo</span>
+              </button>
             </div>
-          )}
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={createPost.isPending || (uploadProgress > 0 && uploadProgress < 100)}
-              className="bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)]"
-            >
-              {createPost.isPending ? 'Posting...' : 'Post'}
-            </Button>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={createPost.isPending}
+                className="text-sm text-muted-foreground px-4 py-2 rounded-xl hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={
+                  createPost.isPending ||
+                  !isActorReady ||
+                  (!text.trim() && !imageFile)
+                }
+                className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-medium px-4 py-2 rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {createPost.isPending ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Posting…</span>
+                  </>
+                ) : (
+                  <span>Post</span>
+                )}
+              </button>
+            </div>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

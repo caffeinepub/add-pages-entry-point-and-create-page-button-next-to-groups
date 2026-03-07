@@ -1,18 +1,22 @@
-import { useEffect, useState, useMemo } from 'react';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, MapPin, Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, MapPin, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useGetCountries,
-  useGetStatesByCountry,
   useGetDistrictsByState,
-  useGetMPConstituenciesByDistrict,
-  useGetMLAConstituenciesByMP,
-  useGetMandalsByMLA,
-  useGetVillagesByMandal,
-} from '../hooks/useLocationQueries';
+  useGetMLAConstituencies,
+  useGetMPConstituencies,
+  useGetStatesByCountry,
+} from "../hooks/useLocationQueries";
 
 interface HierarchicalLocationSelectorProps {
   value?: string;
@@ -43,12 +47,12 @@ function SearchableSelect({
   disabled,
   isLoading,
   error,
-  emptyMessage = 'No options available',
+  emptyMessage = "No data available",
 }: SearchableSelectProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
-  // Filter options based on search query
+  // Filter options based on search query (case-insensitive partial matching)
   const filteredOptions = useMemo(() => {
     if (!searchQuery.trim()) return options;
     const query = searchQuery.toLowerCase();
@@ -58,23 +62,31 @@ function SearchableSelect({
   // Reset search when dropdown closes
   useEffect(() => {
     if (!isOpen) {
-      setSearchQuery('');
+      setSearchQuery("");
     }
   }, [isOpen]);
 
   return (
     <div>
-      <Label htmlFor={id} className="text-sm font-semibold text-[oklch(0.15_0_0)] mb-2 block">
+      <Label
+        htmlFor={id}
+        className="text-sm font-semibold text-[oklch(0.15_0_0)] mb-2 block"
+      >
         {label}
       </Label>
-      <Select value={value} onValueChange={onChange} disabled={disabled} onOpenChange={setIsOpen}>
+      <Select
+        value={value}
+        onValueChange={onChange}
+        disabled={disabled}
+        onOpenChange={setIsOpen}
+      >
         <SelectTrigger
           id={id}
-          className="bg-white border-[oklch(0.70_0.02_250)] text-[oklch(0.15_0_0)] focus:border-[oklch(0.45_0.12_250)] focus:ring-2 focus:ring-[oklch(0.45_0.12_250/0.2)]"
+          className="min-h-[44px] bg-white border-[oklch(0.70_0.02_250)] text-[oklch(0.15_0_0)] focus:border-[oklch(0.45_0.12_250)] focus:ring-2 focus:ring-[oklch(0.45_0.12_250/0.2)] touch-manipulation"
         >
-          <SelectValue placeholder={isLoading ? 'Loading...' : placeholder} />
+          <SelectValue placeholder={isLoading ? "Loading..." : placeholder} />
         </SelectTrigger>
-        <SelectContent className="max-h-[65vh]">
+        <SelectContent className="max-h-[200px] max-w-[calc(100vw-2rem)]">
           {/* Search input - only show if there are options */}
           {options.length > 0 && (
             <div className="sticky top-0 z-10 bg-white border-b border-[oklch(0.85_0.02_250)] p-2">
@@ -84,7 +96,7 @@ function SearchableSelect({
                   placeholder={`Search ${label.toLowerCase()}...`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 h-8 text-sm"
+                  className="pl-8 h-9 text-sm min-h-[44px] touch-manipulation"
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => e.stopPropagation()}
                 />
@@ -92,18 +104,34 @@ function SearchableSelect({
             </div>
           )}
 
-          {/* Scrollable options list */}
-          <ScrollArea className="max-h-[calc(65vh-60px)]">
+          {/* Scrollable options list with smooth scrolling */}
+          <ScrollArea
+            className="max-h-[200px] overflow-y-auto"
+            style={{ scrollBehavior: "smooth" }}
+          >
             <div className="p-1">
-              {error ? (
-                <div className="px-2 py-1.5 text-sm text-red-600">Failed to load {label.toLowerCase()}</div>
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2 px-2 py-3 text-sm text-[oklch(0.50_0.03_250)]">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading...
+                </div>
+              ) : error ? (
+                <div className="px-2 py-3 text-sm text-red-600">
+                  Failed to load {label.toLowerCase()}
+                </div>
               ) : filteredOptions.length === 0 ? (
-                <div className="px-2 py-1.5 text-sm text-[oklch(0.50_0.03_250)]">
-                  {searchQuery ? `No results for "${searchQuery}"` : emptyMessage}
+                <div className="px-2 py-3 text-sm text-[oklch(0.50_0.03_250)]">
+                  {searchQuery
+                    ? `No results for "${searchQuery}"`
+                    : emptyMessage}
                 </div>
               ) : (
                 filteredOptions.map((option) => (
-                  <SelectItem key={option} value={option} className="cursor-pointer">
+                  <SelectItem
+                    key={option}
+                    value={option}
+                    className="cursor-pointer min-h-[44px] touch-manipulation"
+                  >
                     {option}
                   </SelectItem>
                 ))
@@ -123,105 +151,118 @@ function SearchableSelect({
 }
 
 export default function HierarchicalLocationSelector({
-  value,
+  value: _value,
   onChange,
   initialLocation,
 }: HierarchicalLocationSelectorProps) {
-  const [country, setCountry] = useState<string>('');
-  const [state, setState] = useState<string>('');
-  const [district, setDistrict] = useState<string>('');
-  const [mpConstituency, setMpConstituency] = useState<string>('');
-  const [mlaConstituency, setMlaConstituency] = useState<string>('');
-  const [mandal, setMandal] = useState<string>('');
-  const [village, setVillage] = useState<string>('');
+  const [country, setCountry] = useState<string>("");
+  const [state, setState] = useState<string>("");
+  const [district, setDistrict] = useState<string>("");
+  const [mpConstituency, setMpConstituency] = useState<string>("");
+  const [mlaConstituency, setMlaConstituency] = useState<string>("");
 
   // Fetch data for each level
-  const { data: countries = [], isLoading: loadingCountries, error: countriesError } = useGetCountries();
-  const { data: states = [], isLoading: loadingStates, error: statesError } = useGetStatesByCountry(country);
-  const { data: districts = [], isLoading: loadingDistricts, error: districtsError } = useGetDistrictsByState(state);
-  const { data: mpConstituencies = [], isLoading: loadingMP, error: mpError } = useGetMPConstituenciesByDistrict(district);
-  const { data: mlaConstituencies = [], isLoading: loadingMLA, error: mlaError } = useGetMLAConstituenciesByMP(mpConstituency);
-  const { data: mandals = [], isLoading: loadingMandals, error: mandalsError } = useGetMandalsByMLA(mlaConstituency);
-  const { data: villages = [], isLoading: loadingVillages, error: villagesError } = useGetVillagesByMandal(mandal);
+  const {
+    data: countries = [],
+    isLoading: loadingCountries,
+    error: countriesError,
+  } = useGetCountries();
+  const {
+    data: states = [],
+    isLoading: loadingStates,
+    error: statesError,
+  } = useGetStatesByCountry(country);
+  const {
+    data: districts = [],
+    isLoading: loadingDistricts,
+    error: districtsError,
+  } = useGetDistrictsByState(state);
+  const {
+    data: mpConstituencies = [],
+    isLoading: loadingMPConstituencies,
+    error: mpConstituenciesError,
+  } = useGetMPConstituencies(district);
+  const {
+    data: mlaConstituencies = [],
+    isLoading: loadingMLAConstituencies,
+    error: mlaConstituenciesError,
+  } = useGetMLAConstituencies(district);
 
-  // Build location string from selected values
+  // Parse initial location string if provided
+  useEffect(() => {
+    if (initialLocation && !country) {
+      const parts = initialLocation.split(" > ").map((p) => p.trim());
+      if (parts.length >= 1) {
+        const countryCode = parts[0] === "India" ? "IN" : parts[0];
+        setCountry(countryCode);
+      }
+      if (parts.length >= 2) setState(parts[1]);
+      if (parts.length >= 3) setDistrict(parts[2]);
+      if (parts.length >= 4) setMpConstituency(parts[3]);
+      if (parts.length >= 5) setMlaConstituency(parts[4]);
+    }
+  }, [initialLocation, country]);
+
+  // Build location string from selected values (Country > State > District > MP > MLA)
   useEffect(() => {
     const parts: string[] = [];
-    if (village) parts.push(village);
-    if (mandal) parts.push(mandal);
-    if (mlaConstituency) parts.push(mlaConstituency);
-    if (mpConstituency) parts.push(mpConstituency);
-    if (district) parts.push(district);
-    if (state) parts.push(state);
     if (country) {
       // Convert country code to readable name
-      const countryName = country === 'IN' ? 'India' : country;
+      const countryName = country === "IN" ? "India" : country;
       parts.push(countryName);
     }
+    if (state) parts.push(state);
+    if (district) parts.push(district);
+    if (mpConstituency) parts.push(mpConstituency);
+    if (mlaConstituency) parts.push(mlaConstituency);
 
-    const locationString = parts.join(', ');
+    const locationString = parts.join(" > ");
     onChange(locationString);
-  }, [country, state, district, mpConstituency, mlaConstituency, mandal, village, onChange]);
+  }, [country, state, district, mpConstituency, mlaConstituency, onChange]);
 
   // Reset downstream selections when upstream changes
   const handleCountryChange = (value: string) => {
     setCountry(value);
-    setState('');
-    setDistrict('');
-    setMpConstituency('');
-    setMlaConstituency('');
-    setMandal('');
-    setVillage('');
+    setState("");
+    setDistrict("");
+    setMpConstituency("");
+    setMlaConstituency("");
   };
 
   const handleStateChange = (value: string) => {
     setState(value);
-    setDistrict('');
-    setMpConstituency('');
-    setMlaConstituency('');
-    setMandal('');
-    setVillage('');
+    setDistrict("");
+    setMpConstituency("");
+    setMlaConstituency("");
   };
 
   const handleDistrictChange = (value: string) => {
     setDistrict(value);
-    setMpConstituency('');
-    setMlaConstituency('');
-    setMandal('');
-    setVillage('');
+    setMpConstituency("");
+    setMlaConstituency("");
   };
 
-  const handleMPChange = (value: string) => {
+  const handleMPConstituencyChange = (value: string) => {
     setMpConstituency(value);
-    setMlaConstituency('');
-    setMandal('');
-    setVillage('');
   };
 
-  const handleMLAChange = (value: string) => {
+  const handleMLAConstituencyChange = (value: string) => {
     setMlaConstituency(value);
-    setMandal('');
-    setVillage('');
   };
 
-  const handleMandalChange = (value: string) => {
-    setMandal(value);
-    setVillage('');
-  };
-
-  const isIndiaSelected = country === 'IN';
+  const isIndiaSelected = country === "IN";
 
   // Convert country codes to readable names for display
   const countryOptions = useMemo(() => {
-    return countries.map((c) => (c === 'IN' ? 'India' : c));
+    return countries.map((c) => (c === "IN" ? "India" : c));
   }, [countries]);
 
   const handleCountrySelectChange = (displayValue: string) => {
-    const code = displayValue === 'India' ? 'IN' : displayValue;
+    const code = displayValue === "India" ? "IN" : displayValue;
     handleCountryChange(code);
   };
 
-  const selectedCountryDisplay = country === 'IN' ? 'India' : country;
+  const selectedCountryDisplay = country === "IN" ? "India" : country;
 
   return (
     <div className="space-y-4">
@@ -256,7 +297,7 @@ export default function HierarchicalLocationSelector({
           disabled={!country || loadingStates}
           isLoading={loadingStates}
           error={statesError}
-          emptyMessage="No states available"
+          emptyMessage="No data available"
         />
       )}
 
@@ -272,71 +313,39 @@ export default function HierarchicalLocationSelector({
           disabled={!state || loadingDistricts}
           isLoading={loadingDistricts}
           error={districtsError}
-          emptyMessage="No districts available"
+          emptyMessage="No data available"
         />
       )}
 
       {/* MP Constituency Selection */}
       {isIndiaSelected && district && (
         <SearchableSelect
-          id="mp"
-          label="Lok Sabha (MP) Constituency"
+          id="mpConstituency"
+          label="MP Constituency"
           value={mpConstituency}
-          onChange={handleMPChange}
+          onChange={handleMPConstituencyChange}
           options={mpConstituencies}
-          placeholder={mpConstituencies.length === 0 ? 'Not yet available' : 'Select MP constituency'}
-          disabled={!district || loadingMP}
-          isLoading={loadingMP}
-          error={mpError}
-          emptyMessage="Data coming soon"
+          placeholder="Select MP constituency"
+          disabled={!district || loadingMPConstituencies}
+          isLoading={loadingMPConstituencies}
+          error={mpConstituenciesError}
+          emptyMessage="No data available"
         />
       )}
 
       {/* MLA Constituency Selection */}
-      {isIndiaSelected && mpConstituency && (
+      {isIndiaSelected && district && (
         <SearchableSelect
-          id="mla"
-          label="Assembly (MLA) Constituency"
+          id="mlaConstituency"
+          label="MLA Constituency"
           value={mlaConstituency}
-          onChange={handleMLAChange}
+          onChange={handleMLAConstituencyChange}
           options={mlaConstituencies}
-          placeholder={mlaConstituencies.length === 0 ? 'Not yet available' : 'Select MLA constituency'}
-          disabled={!mpConstituency || loadingMLA}
-          isLoading={loadingMLA}
-          error={mlaError}
-          emptyMessage="Data coming soon"
-        />
-      )}
-
-      {/* Mandal/Taluk Selection */}
-      {isIndiaSelected && mlaConstituency && (
-        <SearchableSelect
-          id="mandal"
-          label="Mandal / Taluk"
-          value={mandal}
-          onChange={handleMandalChange}
-          options={mandals}
-          placeholder={mandals.length === 0 ? 'Not yet available' : 'Select mandal/taluk'}
-          disabled={!mlaConstituency || loadingMandals}
-          isLoading={loadingMandals}
-          error={mandalsError}
-          emptyMessage="Data coming soon"
-        />
-      )}
-
-      {/* Village Selection */}
-      {isIndiaSelected && mandal && (
-        <SearchableSelect
-          id="village"
-          label="Village"
-          value={village}
-          onChange={setVillage}
-          options={villages}
-          placeholder={villages.length === 0 ? 'Not yet available' : 'Select village'}
-          disabled={!mandal || loadingVillages}
-          isLoading={loadingVillages}
-          error={villagesError}
-          emptyMessage="Data coming soon"
+          placeholder="Select MLA constituency"
+          disabled={!district || loadingMLAConstituencies}
+          isLoading={loadingMLAConstituencies}
+          error={mlaConstituenciesError}
+          emptyMessage="No data available"
         />
       )}
 

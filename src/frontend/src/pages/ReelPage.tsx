@@ -1,4 +1,4 @@
-import { Film } from 'lucide-react';
+import { Film } from "lucide-react";
 
 export default function ReelPage() {
   return (
@@ -11,10 +11,12 @@ export default function ReelPage() {
           Reels Coming Soon
         </h2>
         <p className="text-lg text-muted-foreground max-w-md mb-2">
-          Get ready for short-form video content that brings civic engagement to life.
+          Get ready for short-form video content that brings civic engagement to
+          life.
         </p>
         <p className="text-muted-foreground max-w-md">
-          Share your political views, community stories, and civic moments in engaging vertical videos.
+          Share your political views, community stories, and civic moments in
+          engaging vertical videos.
         </p>
       </div>
     </div>

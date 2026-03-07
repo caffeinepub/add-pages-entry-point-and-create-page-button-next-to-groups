@@ -1,16 +1,21 @@
-import Nat "mo:core/Nat";
-import Principal "mo:core/Principal";
-import Runtime "mo:core/Runtime";
-import List "mo:core/List";
-import Time "mo:core/Time";
-import Set "mo:core/Set";
-import Map "mo:core/Map";
 import Array "mo:core/Array";
-import Storage "blob-storage/Storage";
-import MixinStorage "blob-storage/Mixin";
+import Float "mo:core/Float";
+import Int "mo:core/Int";
+import Iter "mo:core/Iter";
+import List "mo:core/List";
+import Map "mo:core/Map";
+import Nat "mo:core/Nat";
+import Runtime "mo:core/Runtime";
+import Set "mo:core/Set";
 import Text "mo:core/Text";
+import Time "mo:core/Time";
+import Principal "mo:core/Principal";
+
 import AccessControl "authorization/access-control";
+import Storage "blob-storage/Storage";
 import MixinAuthorization "authorization/MixinAuthorization";
+import MixinStorage "blob-storage/Mixin";
+
 
 actor {
   include MixinStorage();
@@ -26,6 +31,34 @@ actor {
     followerCount : Nat;
     badges : [Text];
     verifiedStatus : Bool;
+    civicTokenBalance : Nat;
+  };
+
+  public type Wallet = {
+    civPoints : Float;
+    totalEarned : Float;
+    dailyEarned : Float;
+    level : Float;
+    lastLoginDate : Int;
+    lastResetDate : Int;
+  };
+
+  public type PointHistory = {
+    userId : Principal;
+    actionType : Text;
+    points : Float;
+    date : Int;
+    status : Text;
+  };
+
+  public type Page = {
+    pageName : Text;
+    category : Text;
+    description : Text;
+    profileImage : ?Storage.ExternalBlob;
+    owner : Principal;
+    creationTime : Time.Time;
+    isPrivate : Bool;
   };
 
   public type MediaContent = {
@@ -39,6 +72,11 @@ actor {
     #newsFeed;
   };
 
+  public type PostEdit = {
+    content : MediaContent;
+    timestamp : Time.Time;
+  };
+
   public type Post = {
     id : Nat;
     author : Principal;
@@ -48,13 +86,20 @@ actor {
     seriousLikeCount : Nat;
     groupId : ?Nat;
     postType : PostType;
+    editHistory : [PostEdit];
+    isEdited : Bool;
   };
 
   public type Comment = {
-    postId : Nat;
-    author : Principal;
+    id : Nat;
+    postId : Text;
+    authorId : Principal;
     content : Text;
-    timestamp : Time.Time;
+    createdAt : Int;
+    updatedAt : ?Int;
+    parentCommentId : ?Nat;
+    likes : [Principal];
+    isDeleted : Bool;
   };
 
   public type Poll = {
@@ -218,7 +263,6 @@ actor {
     verificationTime : Time.Time;
   };
 
-  // Education Types
   public type EducationCategory = {
     #policy;
     #governance;
@@ -274,7 +318,6 @@ actor {
     quizzesCompleted : [Nat];
   };
 
-  // Location Models
   public type Country = {
     code : Text;
     name : Text;
@@ -319,11 +362,18 @@ actor {
     hierarchy : [LevelHierarchy];
   };
 
-  // Location Constants
+  public type CreateGroupArgs = {
+    name : Text;
+    description : Text;
+    coverImage : ?Storage.ExternalBlob;
+    adminIds : [Principal];
+    createdAt : Time.Time;
+    creator : Principal;
+  };
+
   var countries : [Country] = [];
   var countryHierarchies : [HierarchyResponse] = [];
   var locations : [Location] = [];
-
   var postCounter = 0;
   var pollCounter = 0;
   var messageCounter = 0;
@@ -334,11 +384,14 @@ actor {
   var reportCounter = 0;
   var learningModuleCounter = 0;
   var quizQuestionCounter = 0;
+  var commentCounter = 0;
 
   let userProfiles = Map.empty<Principal, UserProfile>();
+  let wallets = Map.empty<Principal, Wallet>();
+  let pointHistories = Map.empty<Principal, List.List<PointHistory>>();
   let posts = Map.empty<Nat, Post>();
-  let comments = Map.empty<Nat, List.List<Comment>>();
   let postLikes = Map.empty<Nat, Set.Set<Principal>>();
+  let comments = Map.empty<Nat, Comment>();
   let polls = Map.empty<Nat, Poll>();
   let pollResponses = Map.empty<Nat, List.List<PollResponse>>();
   let followers = Map.empty<Principal, Set.Set<Principal>>();
@@ -356,228 +409,16 @@ actor {
   let quizQuestions = Map.empty<Nat, QuizQuestion>();
   let quizSubmissions = Map.empty<Nat, List.List<QuizSubmission>>();
   let userProgress = Map.empty<Principal, UserProgress>();
+  let pages = Map.empty<Nat, Page>();
+  var pageCounter = 0;
+  let suspendedUsers = Map.empty<Principal, Bool>();
+  let postReports = Map.empty<Nat, List.List<Report>>();
 
-  // Helper function to check if user is verified
-  func isUserVerified(user : Principal) : Bool {
-    switch (verifiedUsers.get(user)) {
-      case (?verifiedUser) { verifiedUser.isVerified };
-      case null { false };
-    };
-  };
+  // User profile management
 
-  // Social Posts
-  public query ({ caller }) func getAllPosts() : async [Post] {
-    posts.values().toArray();
-  };
-
-  public query ({ caller }) func getUserPosts(user : Principal) : async [Post] {
-    let all = posts.values().toArray();
-    let filtered = all.filter(
-      func(post) { post.author == user }
-    );
-    filtered;
-  };
-
-  public query ({ caller }) func getNewsFeedPosts() : async [Post] {
-    let all = posts.values().toArray();
-    let filtered = all.filter(
-      func(post) {
-        switch (post.postType) {
-          case (#newsFeed) { true };
-          case (#regular) { false };
-        };
-      }
-    );
-    filtered;
-  };
-
-  func isTextValid(text : ?Text) : Bool {
-    switch (text) {
-      case (null) { false };
-      case (?value) {
-        let trimmed = value.trim(#char(' '));
-        trimmed.size() > 0;
-      };
-    };
-  };
-
-  public shared ({ caller }) func createPost(content : MediaContent, groupId : ?Nat) : async Nat {
-    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
-      Runtime.trap("Unauthorized: Only registered users can create posts");
-    };
-
-    let hasText = isTextValid(content.text);
-    let hasImage = content.image.isSome();
-    let hasVideo = content.video.isSome();
-
-    if (not hasText and not hasImage and not hasVideo) {
-      Runtime.trap("Content must include text, image, or video");
-    };
-
-    let postId = postCounter;
-    postCounter += 1;
-
-    let newPost : Post = {
-      id = postId;
-      author = caller;
-      content;
-      timestamp = Time.now();
-      likeCount = 0;
-      seriousLikeCount = 0;
-      groupId;
-      postType = #regular;
-    };
-
-    posts.add(postId, newPost);
-    postId;
-  };
-
-  public shared ({ caller }) func createNewsFeedPost(content : MediaContent) : async Nat {
-    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
-      Runtime.trap("Unauthorized: Only registered users can create posts");
-    };
-
-    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
-    let isVerified = isUserVerified(caller);
-
-    if (not isAdmin and not isVerified) {
-      Runtime.trap("Unauthorized: Only admin or verified users can create News Feed posts");
-    };
-
-    let hasText = isTextValid(content.text);
-    let hasImage = content.image.isSome();
-    let hasVideo = content.video.isSome();
-
-    if (not hasText and not hasImage and not hasVideo) {
-      Runtime.trap("Content must include text, image, or video");
-    };
-
-    let postId = postCounter;
-    postCounter += 1;
-
-    let newPost : Post = {
-      id = postId;
-      author = caller;
-      content;
-      timestamp = Time.now();
-      likeCount = 0;
-      seriousLikeCount = 0;
-      groupId = null;
-      postType = #newsFeed;
-    };
-
-    posts.add(postId, newPost);
-    postId;
-  };
-
-  public shared ({ caller }) func deletePost(postId : Nat) : async () {
-    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
-      Runtime.trap("Unauthorized: Only registered users can delete posts");
-    };
-
-    switch (posts.get(postId)) {
-      case null {
-        Runtime.trap("Post not found");
-      };
-      case (?post) {
-        let isOwner = post.author == caller;
-        let isAdmin = AccessControl.isAdmin(accessControlState, caller);
-
-        if (not isOwner and not isAdmin) {
-          Runtime.trap("Unauthorized: Only the post owner or admin can delete this post");
-        };
-
-        posts.remove(postId);
-        comments.remove(postId);
-        postLikes.remove(postId);
-      };
-    };
-  };
-
-  // --- Location API Functions ---
-  // These are public read-only functions accessible to all users including guests
-  public query ({ caller }) func getCountries() : async [Text] {
-    ["IN"];
-  };
-
-  public query ({ caller }) func getStatesByCountry(_country : Text) : async [Text] {
-    [
-      "Andhra Pradesh",
-      "Arunachal Pradesh",
-      "Assam",
-      "Bihar",
-      "Chhattisgarh",
-      "Goa",
-      "Gujarat",
-      "Haryana",
-      "Himachal Pradesh",
-      "Jharkhand",
-      "Karnataka",
-      "Kerala",
-      "Madhya Pradesh",
-      "Maharashtra",
-      "Manipur",
-      "Meghalaya",
-      "Mizoram",
-      "Nagaland",
-      "Odisha",
-      "Punjab",
-      "Rajasthan",
-      "Sikkim",
-      "Tamil Nadu",
-      "Telangana",
-      "Tripura",
-      "Uttar Pradesh",
-      "Uttarakhand",
-      "West Bengal",
-      "Andaman and Nicobar Islands",
-      "Chandigarh",
-      "Dadra and Nagar Haveli and Daman and Diu",
-      "Delhi",
-      "Jammu and Kashmir",
-      "Ladakh",
-      "Lakshadweep",
-      "Puducherry"
-    ];
-  };
-
-  public query ({ caller }) func getDistrictsByState(state : Text) : async [Text] {
-    if (state == "Tamil Nadu") {
-      return [
-        "Ariyalur",
-        "Chengalpattu",
-        "Chennai",
-        "Coimbatore",
-        "Cuddalore",
-        "Dharmapuri",
-        "Dindigul",
-        "Erode",
-        "Kallakurichi",
-        "Kanchipuram",
-        "Kanyakumari",
-        "Karur",
-        "Krishnagiri",
-        "Madurai",
-        "Mayiladuthurai",
-        "Nagapattinam",
-        "Namakkal",
-        "Nilgiris",
-        "Perambalur",
-        "Pudukkottai",
-        "Ramanathapuram",
-        "Ranipet",
-        "Salem",
-        "Sivaganga"
-      ];
-    } else {
-      return [];
-    };
-  };
-
-  // User Profile Functions
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can access profiles");
+      Runtime.trap("Unauthorized: Only users can get their profile");
     };
     userProfiles.get(caller);
   };
@@ -594,5 +435,135 @@ actor {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
     userProfiles.add(caller, profile);
+  };
+
+  // Post management
+
+  public shared ({ caller }) func createPost(content : MediaContent, groupId : ?Nat, postType : PostType) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create posts");
+    };
+
+    let postId = postCounter;
+    postCounter += 1;
+
+    let newPost : Post = {
+      id = postId;
+      author = caller;
+      content;
+      timestamp = Time.now();
+      likeCount = 0;
+      seriousLikeCount = 0;
+      groupId;
+      postType;
+      editHistory = [];
+      isEdited = false;
+    };
+
+    posts.add(postId, newPost);
+
+    let likes = Set.empty<Principal>();
+    postLikes.add(postId, likes);
+
+    postId;
+  };
+
+  // Poll management
+
+  public shared ({ caller }) func createPoll(question : Text, options : [Text], isPublic : Bool) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create polls");
+    };
+
+    let pollId = pollCounter;
+    pollCounter += 1;
+
+    let votes = Array.tabulate(options.size(), func(_) { 0 });
+
+    let newPoll : Poll = {
+      id = pollId;
+      question;
+      options;
+      votes;
+      isPublic;
+      creator = caller;
+    };
+
+    polls.add(pollId, newPoll);
+
+    let responses = List.empty<PollResponse>();
+    pollResponses.add(pollId, responses);
+
+    pollId;
+  };
+
+  // Group management
+
+  public shared ({ caller }) func createGroup(args : CreateGroupArgs) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create groups");
+    };
+
+    let groupId = groupCounter;
+    groupCounter += 1;
+
+    let newGroup : Group = {
+      id = groupId;
+      name = args.name;
+      description = args.description;
+      creator = caller;
+      coverImage = args.coverImage;
+      createdAt = Time.now();
+    };
+
+    groups.add(groupId, newGroup);
+
+    let memberships = List.empty<GroupMembership>();
+    groupMemberships.add(groupId, memberships);
+
+    groupId;
+  };
+
+  // Page management
+
+  public shared ({ caller }) func createPage(pageName : Text, category : Text, description : Text, profileImage : ?Storage.ExternalBlob, isPrivate : Bool) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create pages");
+    };
+
+    let pageId = pageCounter;
+    pageCounter += 1;
+
+    let newPage : Page = {
+      pageName;
+      category;
+      description;
+      profileImage;
+      owner = caller;
+      creationTime = Time.now();
+      isPrivate;
+    };
+
+    pages.add(pageId, newPage);
+
+    pageId;
+  };
+
+  // Read-only queries (accessible to all, including guests)
+
+  public query func getPost(postId : Nat) : async ?Post {
+    posts.get(postId);
+  };
+
+  public query func getPoll(pollId : Nat) : async ?Poll {
+    polls.get(pollId);
+  };
+
+  public query func getGroup(groupId : Nat) : async ?Group {
+    groups.get(groupId);
+  };
+
+  public query func getPage(pageId : Nat) : async ?Page {
+    pages.get(pageId);
   };
 };

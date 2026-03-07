@@ -1,21 +1,37 @@
-import { useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Upload, X } from 'lucide-react';
-import { useSaveUserProfile, useGetCallerUserProfile } from '../hooks/useQueries';
-import { ExternalBlob } from '../backend';
-import { toast } from 'sonner';
-import { validateProfilePhoto, processProfilePhoto } from '../utils/profilePhotoValidation';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Camera, X } from "lucide-react";
+import type React from "react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { ExternalBlob } from "../backend";
+import {
+  useGetCallerUserProfile,
+  useSaveCallerUserProfile,
+} from "../hooks/useQueries";
+import {
+  processProfilePhoto,
+  validateProfilePhoto,
+} from "../utils/profilePhotoValidation";
 
 interface EditProfilePictureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export default function EditProfilePictureModal({ open, onOpenChange }: EditProfilePictureModalProps) {
+export default function EditProfilePictureModal({
+  open,
+  onOpenChange,
+}: EditProfilePictureModalProps) {
   const { data: userProfile } = useGetCallerUserProfile();
-  const saveProfile = useSaveUserProfile();
+  const saveProfile = useSaveCallerUserProfile();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -26,7 +42,6 @@ export default function EditProfilePictureModal({ open, onOpenChange }: EditProf
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file
     const validationError = validateProfilePhoto(file);
     if (validationError) {
       toast.error(validationError);
@@ -35,13 +50,11 @@ export default function EditProfilePictureModal({ open, onOpenChange }: EditProf
 
     setIsProcessing(true);
     try {
-      // Process image (crop and compress)
       const { processedBlob, previewDataUrl } = await processProfilePhoto(file);
-      
       setSelectedFile(processedBlob);
       setPreviewUrl(previewDataUrl);
     } catch (error: any) {
-      toast.error(error.message || 'Failed to process image');
+      toast.error(error.message || "Failed to process image");
     } finally {
       setIsProcessing(false);
     }
@@ -49,7 +62,7 @@ export default function EditProfilePictureModal({ open, onOpenChange }: EditProf
 
   const handleSave = async () => {
     if (!userProfile) {
-      toast.error('Profile not loaded');
+      toast.error("Profile not loaded");
       return;
     }
 
@@ -59,45 +72,48 @@ export default function EditProfilePictureModal({ open, onOpenChange }: EditProf
       if (selectedFile) {
         const arrayBuffer = await selectedFile.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
-        profilePhotoBlob = ExternalBlob.fromBytes(uint8Array).withUploadProgress((percentage) => {
+        profilePhotoBlob = ExternalBlob.fromBytes(
+          uint8Array,
+        ).withUploadProgress((percentage) => {
           setUploadProgress(percentage);
         });
       }
 
       await saveProfile.mutateAsync({
         ...userProfile,
-        profilePhoto: profilePhotoBlob || null,
+        profilePhoto: profilePhotoBlob,
       });
 
       onOpenChange(false);
       setSelectedFile(null);
       setPreviewUrl(null);
       setUploadProgress(0);
+      toast.success("Profile photo updated!");
     } catch (error: any) {
-      console.error('Error saving profile photo:', error);
-      toast.error(error.message || 'Failed to save profile photo');
+      console.error("Error saving profile photo:", error);
+      toast.error(error.message || "Failed to save profile photo");
     }
   };
 
   const handleRemove = async () => {
     if (!userProfile) {
-      toast.error('Profile not loaded');
+      toast.error("Profile not loaded");
       return;
     }
 
     try {
       await saveProfile.mutateAsync({
         ...userProfile,
-        profilePhoto: null,
+        profilePhoto: undefined,
       });
 
       onOpenChange(false);
       setSelectedFile(null);
       setPreviewUrl(null);
-      toast.success('Profile photo removed');
+      toast.success("Profile photo removed");
     } catch (error: any) {
-      console.error('Error removing profile photo:', error);
-      toast.error(error.message || 'Failed to remove profile photo');
+      console.error("Error removing profile photo:", error);
+      toast.error(error.message || "Failed to remove profile photo");
     }
   };
 
@@ -110,9 +126,16 @@ export default function EditProfilePictureModal({ open, onOpenChange }: EditProf
 
   const currentPhotoUrl = userProfile?.profilePhoto?.getDirectURL();
   const displayUrl = previewUrl || currentPhotoUrl;
-  const userInitials = userProfile?.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
+  const userInitials =
+    userProfile?.name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "U";
 
-  const isUploading = saveProfile.isPending && uploadProgress > 0 && uploadProgress < 100;
+  const isUploading =
+    saveProfile.isPending && uploadProgress > 0 && uploadProgress < 100;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -166,7 +189,7 @@ export default function EditProfilePictureModal({ open, onOpenChange }: EditProf
               className="hidden"
               id="profile-photo-upload"
             />
-            
+
             <Button
               variant="outline"
               className="w-full gap-2"
@@ -174,7 +197,7 @@ export default function EditProfilePictureModal({ open, onOpenChange }: EditProf
               disabled={isProcessing || saveProfile.isPending}
             >
               <Camera className="h-4 w-4" />
-              {selectedFile ? 'Choose Different Photo' : 'Upload Photo'}
+              {selectedFile ? "Choose Different Photo" : "Upload Photo"}
             </Button>
 
             {(currentPhotoUrl || selectedFile) && (
@@ -210,7 +233,7 @@ export default function EditProfilePictureModal({ open, onOpenChange }: EditProf
             disabled={!selectedFile || isProcessing || saveProfile.isPending}
             className="bg-[oklch(0.45_0.12_250)] hover:bg-[oklch(0.40_0.12_250)]"
           >
-            {saveProfile.isPending ? 'Saving...' : 'Save'}
+            {saveProfile.isPending ? "Saving..." : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
