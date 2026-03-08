@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2, LogIn, LogOut, Shield, User, Wallet } from "lucide-react";
 import React from "react";
+import civworldLogo from "/assets/generated/civworld-app-icon.dim_1024x1024.png";
 import { useView } from "../context/ViewContext";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useIsAdmin } from "../hooks/useQueries";
@@ -44,7 +45,7 @@ export default function Header() {
           className="flex items-center gap-2 font-bold text-lg text-primary"
         >
           <img
-            src="/assets/generated/civworld-app-icon.dim_1024x1024.png"
+            src={civworldLogo}
             alt="CivWorld"
             className="w-8 h-8 rounded-lg object-cover"
           />

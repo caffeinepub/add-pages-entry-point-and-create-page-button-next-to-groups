@@ -1,6 +1,7 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Home, Loader2 } from "lucide-react";
-import React from "react";
+import React, { useEffect } from "react";
 import PartnershipBanner from "../components/PartnershipBanner";
 import PostCard from "../components/PostCard";
 import PromotionalCard from "../components/PromotionalCard";
@@ -16,7 +17,18 @@ export default function HomePage() {
   const { currentView } = useView();
   const { identity } = useInternetIdentity();
   const navigate = useNavigate();
-  const { data: posts = [], isLoading } = useGetPosts();
+  const queryClient = useQueryClient();
+  const { data: posts = [], isLoading, refetch } = useGetPosts();
+
+  // Refetch posts whenever a post is created (event dispatched by QuickPostBar)
+  useEffect(() => {
+    const handlePostCreated = () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      refetch();
+    };
+    window.addEventListener("postCreated", handlePostCreated);
+    return () => window.removeEventListener("postCreated", handlePostCreated);
+  }, [queryClient, refetch]);
 
   if (currentView === "wallet") {
     return <WalletView />;

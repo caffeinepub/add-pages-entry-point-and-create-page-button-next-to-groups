@@ -108,6 +108,9 @@ export function useGetPosts() {
       return [];
     },
     enabled: !!actor && !actorFetching,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -188,6 +191,7 @@ export function useCreatePost() {
       queryClient.invalidateQueries({ queryKey: ["homeFeed"] });
       queryClient.invalidateQueries({ queryKey: ["userPosts"] });
       queryClient.invalidateQueries({ queryKey: ["groupPosts"] });
+      queryClient.refetchQueries({ queryKey: ["posts"] });
       toast.success("Post created successfully!");
     },
     onError: (error: unknown) => {
