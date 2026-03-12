@@ -320,3 +320,40 @@ html {
     font-size: 14px;
   }
 }
+
+/* CivWorld Live — emoji float animation */
+@keyframes emojiRise {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  60% {
+    opacity: 0.8;
+    transform: translateY(-60px) scale(1.3);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-100px) scale(1.4);
+  }
+}
+
+.emoji-float {
+  animation: emojiRise 2s ease-out forwards;
+}
+
+/* Live pulse dot */
+@keyframes livePulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.5);
+  }
+}
+
+.live-dot {
+  animation: livePulse 1.2s ease-in-out infinite;
+}

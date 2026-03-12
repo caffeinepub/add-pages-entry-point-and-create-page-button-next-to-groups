@@ -1,27 +1,63 @@
 # CivWorld
 
 ## Current State
-CivWorld is a civic discussion web platform on Internet Computer. The app has a working header with an App/Wallet toggle, bottom nav (Home, Videos/Reels, Civic Feed, Communities), and a post feed. There are two issues:
 
-1. **Logo not visible**: The header references `/assets/generated/civworld-app-icon.dim_1024x1024.png`. The image exists but is not rendering (likely because the build pipeline does not detect it as used since the path is a hardcoded string, so the image gets pruned during build).
-2. **Posts created but not visible**: After creating a post, `queryClient.invalidateQueries({ queryKey: ["posts"] })` is called, but the feed does not update. The `useGetPosts` hook only fetches when `!!actor && !actorFetching`. There may be a race condition where the query is not re-enabled or the cache stale time blocks refetch.
+CivWorld is a civic engagement platform built on ICP with React (frontend) and Motoko (backend). It has a basic notification system: a `Notification` type with `notificationId`, `recipient`, `notificationType`, `message`, `timestamp`, `isRead`, `relatedPost`, and `relatedGroup`. Notifications are stored in a `Map<Principal, List<Notification>>`. There is no dedicated notifications page, no bell icon UI, and no notification filtering by category or location. The Header component has no notification bell. Notifications are not triggered automatically when civic events occur.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Inline logo image import in Header.tsx so it is bundled and survives the build pipeline image pruning
-- Optimistic update in `useCreatePost` mutation so the new post appears immediately in the feed
+
+**Backend:**
+- Extended `Notification` type with additional fields: `category` (civic_issue | poll | leader_update | community | announcement), `title`, `locationTarget` (optional location scope: country/state/district/mpConstituency/mlaConstituency/mandal/village), and `senderPrincipal` (optional)
+- `CivicNotification` type that extends the base notification with the new fields
+- Backend functions:
+  - `createCivicNotification(title, message, category, locationTarget)` — callable by admins or verified leaders
+  - `broadcastNotification(title, message, category, locationTarget)` — sends to all users whose stored location matches the target
+  - `triggerNotificationForEvent(eventType, title, message, locationTarget)` — internal helper triggered when polls are created, civic issues reported, leader posts published, discussions started, or announcements posted
+  - `getCivicNotifications(category?: text)` — returns caller's notifications, optionally filtered by category
+  - `getUnreadCivicNotificationCount()` — returns count of unread notifications for caller
+  - `markCivicNotificationRead(notificationId)` — marks a specific notification as read
+  - `markAllCivicNotificationsRead()` — marks all as read for caller
+- Location-based targeting: when a notification is created with a `locationTarget`, only users whose profile location matches are added as recipients
+- Wire notification triggers into existing `createPoll`, `reportLocalIssue`, `createPoliticalDiscussion` backend calls
+
+**Frontend:**
+- `NotificationsPage` — dedicated page at `/notifications` with:
+  - Full list of civic notifications in reverse chronological order
+  - Filter tabs: All | Civic Issues | Polls | Leader Updates | Community | Announcements
+  - Each notification card: icon (by type), title, message, relative timestamp ("2 minutes ago"), unread dot indicator
+  - Mark all as read button
+- `NotificationBell` component in Header:
+  - Bell icon with red badge showing unread count (hidden when 0)
+  - Dropdown popover showing latest 5–10 notifications
+  - "View all" link to `/notifications`
+  - Auto-polls every 30 seconds for unread count
+- `NotificationCard` — reusable card component used in both dropdown and page
 
 ### Modify
-- Header.tsx: Change logo `<img src="...">` to use a bundled import instead of a public path string
-- useQueries.ts `useCreatePost`: Add `onMutate` for optimistic update, and ensure `invalidateQueries` properly triggers a refetch by also calling `refetchQueries`
-- HomePage.tsx: Listen for `postCreated` custom event and manually invalidate/refetch posts query
+
+- `Header.tsx` — add `NotificationBell` component between admin shield icon and profile icon
+- `App.tsx` — add `/notifications` route pointing to `NotificationsPage`
+- `BottomNav.tsx` — optionally surface notification count badge on a nav item (if notifications nav entry exists)
+- Existing `createPoll`, `reportLocalIssue`, `createPoliticalDiscussion` backend functions — add notification trigger calls after successful creation
 
 ### Remove
-- Nothing removed
+
+- Nothing removed; this fully extends the existing system
 
 ## Implementation Plan
-1. Import the civworld logo image directly in Header.tsx using ES module import so Vite bundles it (prevents build-time pruning of the asset)
-2. In `useCreatePost` mutation's `onSuccess`, additionally call `queryClient.refetchQueries({ queryKey: ["posts"] })` to force an immediate re-fetch after invalidation
-3. In HomePage.tsx, add a `useEffect` that listens to the `postCreated` custom event and calls `queryClient.invalidateQueries` + `queryClient.refetchQueries` on the posts key so the feed refreshes immediately after posting
-4. Validate and deploy
+
+1. Update Motoko backend:
+   - Add `CivicNotification` type with `category`, `title`, `locationTarget`, `senderPrincipal`
+   - Add `civicNotifications` map and `civicNotificationCounter`
+   - Add `createCivicNotification`, `broadcastNotification`, `getCivicNotifications`, `getUnreadCivicNotificationCount`, `markCivicNotificationRead`, `markAllCivicNotificationsRead` public functions
+   - Add internal `triggerCivicNotification` helper
+   - Wire triggers into `createPoll`, `reportLocalIssue`, `createPoliticalDiscussion`
+   - Admins and verified leaders can call `createCivicNotification`
+
+2. Build frontend:
+   - `NotificationBell` component: bell icon, red badge, dropdown popover (last 10), "View all" link, 30s polling
+   - `NotificationsPage`: filterable list, notification cards with type icons, relative timestamps, mark-all-read
+   - Wire into `Header.tsx` and `App.tsx` routing
+   - Use CivWorld blue/white theme, lucide-react icons for notification types

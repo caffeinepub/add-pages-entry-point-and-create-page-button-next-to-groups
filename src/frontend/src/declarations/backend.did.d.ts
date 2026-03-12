@@ -10,6 +10,19 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface CivicNotification {
+  'title' : string,
+  'recipient' : Principal,
+  'isRead' : boolean,
+  'senderPrincipal' : [] | [Principal],
+  'message' : string,
+  'timestamp' : Time,
+  'relatedGroup' : [] | [bigint],
+  'category' : string,
+  'notificationId' : bigint,
+  'locationTarget' : [] | [string],
+  'relatedPost' : [] | [bigint],
+}
 export interface CreateGroupArgs {
   'creator' : Principal,
   'adminIds' : Array<Principal>,
@@ -18,6 +31,10 @@ export interface CreateGroupArgs {
   'description' : string,
   'coverImage' : [] | [ExternalBlob],
 }
+export type DiscussionCategory = { 'economy' : null } |
+  { 'socialIssues' : null } |
+  { 'governance' : null } |
+  { 'policy' : null };
 export type ExternalBlob = Uint8Array;
 export interface Group {
   'id' : bigint,
@@ -27,6 +44,42 @@ export interface Group {
   'description' : string,
   'coverImage' : [] | [ExternalBlob],
 }
+export interface LiveComment {
+  'id' : bigint,
+  'isModerated' : boolean,
+  'upvotes' : Array<Principal>,
+  'content' : string,
+  'parentCommentId' : [] | [bigint],
+  'authorId' : Principal,
+  'moderationReason' : [] | [string],
+  'timestamp' : bigint,
+  'sessionId' : bigint,
+}
+export interface LiveReaction {
+  'authorId' : Principal,
+  'reactionType' : LiveReactionType,
+  'timestamp' : bigint,
+  'sessionId' : bigint,
+}
+export type LiveReactionType = { 'heart' : null } |
+  { 'clap' : null } |
+  { 'fire' : null } |
+  { 'wave' : null };
+export interface LiveSession {
+  'id' : bigint,
+  'status' : LiveSessionStatus,
+  'title' : string,
+  'startedAt' : [] | [bigint],
+  'topic' : string,
+  'endedAt' : [] | [bigint],
+  'scheduledTime' : bigint,
+  'leader' : Principal,
+  'constituency' : string,
+  'viewerCount' : bigint,
+}
+export type LiveSessionStatus = { 'scheduled' : null } |
+  { 'live' : null } |
+  { 'ended' : null };
 export interface MediaContent {
   'video' : [] | [ExternalBlob],
   'text' : [] | [string],
@@ -106,23 +159,57 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'addLiveComment' : ActorMethod<[bigint, string, [] | [bigint]], bigint>,
+  'addLiveReaction' : ActorMethod<[bigint, LiveReactionType], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'createCivicNotification' : ActorMethod<
+    [string, string, string, [] | [string]],
+    bigint
+  >,
   'createGroup' : ActorMethod<[CreateGroupArgs], bigint>,
+  'createLiveSession' : ActorMethod<[string, string, string, bigint], bigint>,
   'createPage' : ActorMethod<
     [string, string, string, [] | [ExternalBlob], boolean],
     bigint
   >,
+  'createPoliticalDiscussion' : ActorMethod<
+    [string, string, string, DiscussionCategory],
+    bigint
+  >,
   'createPoll' : ActorMethod<[string, Array<string>, boolean], bigint>,
   'createPost' : ActorMethod<[MediaContent, [] | [bigint], PostType], bigint>,
+  'endLiveSession' : ActorMethod<[bigint], undefined>,
+  'getActiveSessions' : ActorMethod<[], Array<LiveSession>>,
+  'getAllLiveSessions' : ActorMethod<[], Array<LiveSession>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getCivicNotifications' : ActorMethod<
+    [[] | [string]],
+    Array<CivicNotification>
+  >,
   'getGroup' : ActorMethod<[bigint], [] | [Group]>,
+  'getLeaderArchive' : ActorMethod<[], Array<LiveSession>>,
+  'getLiveSession' : ActorMethod<[bigint], [] | [LiveSession]>,
   'getPage' : ActorMethod<[bigint], [] | [Page]>,
   'getPoll' : ActorMethod<[bigint], [] | [Poll]>,
   'getPost' : ActorMethod<[bigint], [] | [Post]>,
+  'getScheduledSessions' : ActorMethod<[], Array<LiveSession>>,
+  'getSessionComments' : ActorMethod<[bigint], Array<LiveComment>>,
+  'getSessionReactions' : ActorMethod<[bigint], Array<LiveReaction>>,
+  'getUnreadCivicNotificationCount' : ActorMethod<[], bigint>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'incrementSessionViewers' : ActorMethod<[bigint], undefined>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'markAllCivicNotificationsRead' : ActorMethod<[], boolean>,
+  'markCivicNotificationRead' : ActorMethod<[bigint], boolean>,
+  'moderateLiveComment' : ActorMethod<[bigint, bigint, string], undefined>,
+  'reportLocalIssue' : ActorMethod<
+    [string, string, [] | [ExternalBlob], [] | [string], string],
+    bigint
+  >,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'startLiveSession' : ActorMethod<[bigint], undefined>,
+  'upvoteQuestion' : ActorMethod<[bigint, bigint], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

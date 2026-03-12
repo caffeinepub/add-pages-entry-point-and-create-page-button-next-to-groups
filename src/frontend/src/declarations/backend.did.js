@@ -19,6 +19,12 @@ export const _CaffeineStorageRefillResult = IDL.Record({
   'success' : IDL.Opt(IDL.Bool),
   'topped_up_amount' : IDL.Opt(IDL.Nat),
 });
+export const LiveReactionType = IDL.Variant({
+  'heart' : IDL.Null,
+  'clap' : IDL.Null,
+  'fire' : IDL.Null,
+  'wave' : IDL.Null,
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
@@ -34,6 +40,12 @@ export const CreateGroupArgs = IDL.Record({
   'description' : IDL.Text,
   'coverImage' : IDL.Opt(ExternalBlob),
 });
+export const DiscussionCategory = IDL.Variant({
+  'economy' : IDL.Null,
+  'socialIssues' : IDL.Null,
+  'governance' : IDL.Null,
+  'policy' : IDL.Null,
+});
 export const MediaContent = IDL.Record({
   'video' : IDL.Opt(ExternalBlob),
   'text' : IDL.Opt(IDL.Text),
@@ -42,6 +54,23 @@ export const MediaContent = IDL.Record({
 export const PostType = IDL.Variant({
   'regular' : IDL.Null,
   'newsFeed' : IDL.Null,
+});
+export const LiveSessionStatus = IDL.Variant({
+  'scheduled' : IDL.Null,
+  'live' : IDL.Null,
+  'ended' : IDL.Null,
+});
+export const LiveSession = IDL.Record({
+  'id' : IDL.Nat,
+  'status' : LiveSessionStatus,
+  'title' : IDL.Text,
+  'startedAt' : IDL.Opt(IDL.Int),
+  'topic' : IDL.Text,
+  'endedAt' : IDL.Opt(IDL.Int),
+  'scheduledTime' : IDL.Int,
+  'leader' : IDL.Principal,
+  'constituency' : IDL.Text,
+  'viewerCount' : IDL.Nat,
 });
 export const UserProfile = IDL.Record({
   'bio' : IDL.Text,
@@ -52,6 +81,19 @@ export const UserProfile = IDL.Record({
   'verifiedStatus' : IDL.Bool,
   'followerCount' : IDL.Nat,
   'location' : IDL.Text,
+});
+export const CivicNotification = IDL.Record({
+  'title' : IDL.Text,
+  'recipient' : IDL.Principal,
+  'isRead' : IDL.Bool,
+  'senderPrincipal' : IDL.Opt(IDL.Principal),
+  'message' : IDL.Text,
+  'timestamp' : Time,
+  'relatedGroup' : IDL.Opt(IDL.Nat),
+  'category' : IDL.Text,
+  'notificationId' : IDL.Nat,
+  'locationTarget' : IDL.Opt(IDL.Text),
+  'relatedPost' : IDL.Opt(IDL.Nat),
 });
 export const Group = IDL.Record({
   'id' : IDL.Nat,
@@ -94,6 +136,23 @@ export const Post = IDL.Record({
   'editHistory' : IDL.Vec(PostEdit),
   'timestamp' : Time,
 });
+export const LiveComment = IDL.Record({
+  'id' : IDL.Nat,
+  'isModerated' : IDL.Bool,
+  'upvotes' : IDL.Vec(IDL.Principal),
+  'content' : IDL.Text,
+  'parentCommentId' : IDL.Opt(IDL.Nat),
+  'authorId' : IDL.Principal,
+  'moderationReason' : IDL.Opt(IDL.Text),
+  'timestamp' : IDL.Int,
+  'sessionId' : IDL.Nat,
+});
+export const LiveReaction = IDL.Record({
+  'authorId' : IDL.Principal,
+  'reactionType' : LiveReactionType,
+  'timestamp' : IDL.Int,
+  'sessionId' : IDL.Nat,
+});
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -123,10 +182,31 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'addLiveComment' : IDL.Func(
+      [IDL.Nat, IDL.Text, IDL.Opt(IDL.Nat)],
+      [IDL.Nat],
+      [],
+    ),
+  'addLiveReaction' : IDL.Func([IDL.Nat, LiveReactionType], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'createCivicNotification' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Opt(IDL.Text)],
+      [IDL.Nat],
+      [],
+    ),
   'createGroup' : IDL.Func([CreateGroupArgs], [IDL.Nat], []),
+  'createLiveSession' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Int],
+      [IDL.Nat],
+      [],
+    ),
   'createPage' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Text, IDL.Opt(ExternalBlob), IDL.Bool],
+      [IDL.Nat],
+      [],
+    ),
+  'createPoliticalDiscussion' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, DiscussionCategory],
       [IDL.Nat],
       [],
     ),
@@ -140,19 +220,48 @@ export const idlService = IDL.Service({
       [IDL.Nat],
       [],
     ),
+  'endLiveSession' : IDL.Func([IDL.Nat], [], []),
+  'getActiveSessions' : IDL.Func([], [IDL.Vec(LiveSession)], ['query']),
+  'getAllLiveSessions' : IDL.Func([], [IDL.Vec(LiveSession)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getCivicNotifications' : IDL.Func(
+      [IDL.Opt(IDL.Text)],
+      [IDL.Vec(CivicNotification)],
+      ['query'],
+    ),
   'getGroup' : IDL.Func([IDL.Nat], [IDL.Opt(Group)], ['query']),
+  'getLeaderArchive' : IDL.Func([], [IDL.Vec(LiveSession)], ['query']),
+  'getLiveSession' : IDL.Func([IDL.Nat], [IDL.Opt(LiveSession)], ['query']),
   'getPage' : IDL.Func([IDL.Nat], [IDL.Opt(Page)], ['query']),
   'getPoll' : IDL.Func([IDL.Nat], [IDL.Opt(Poll)], ['query']),
   'getPost' : IDL.Func([IDL.Nat], [IDL.Opt(Post)], ['query']),
+  'getScheduledSessions' : IDL.Func([], [IDL.Vec(LiveSession)], ['query']),
+  'getSessionComments' : IDL.Func([IDL.Nat], [IDL.Vec(LiveComment)], ['query']),
+  'getSessionReactions' : IDL.Func(
+      [IDL.Nat],
+      [IDL.Vec(LiveReaction)],
+      ['query'],
+    ),
+  'getUnreadCivicNotificationCount' : IDL.Func([], [IDL.Nat], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
+  'incrementSessionViewers' : IDL.Func([IDL.Nat], [], []),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'markAllCivicNotificationsRead' : IDL.Func([], [IDL.Bool], []),
+  'markCivicNotificationRead' : IDL.Func([IDL.Nat], [IDL.Bool], []),
+  'moderateLiveComment' : IDL.Func([IDL.Nat, IDL.Nat, IDL.Text], [], []),
+  'reportLocalIssue' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Opt(ExternalBlob), IDL.Opt(IDL.Text), IDL.Text],
+      [IDL.Nat],
+      [],
+    ),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'startLiveSession' : IDL.Func([IDL.Nat], [], []),
+  'upvoteQuestion' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
 });
 
 export const idlInitArgs = [];
@@ -169,6 +278,12 @@ export const idlFactory = ({ IDL }) => {
     'success' : IDL.Opt(IDL.Bool),
     'topped_up_amount' : IDL.Opt(IDL.Nat),
   });
+  const LiveReactionType = IDL.Variant({
+    'heart' : IDL.Null,
+    'clap' : IDL.Null,
+    'fire' : IDL.Null,
+    'wave' : IDL.Null,
+  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
@@ -184,12 +299,35 @@ export const idlFactory = ({ IDL }) => {
     'description' : IDL.Text,
     'coverImage' : IDL.Opt(ExternalBlob),
   });
+  const DiscussionCategory = IDL.Variant({
+    'economy' : IDL.Null,
+    'socialIssues' : IDL.Null,
+    'governance' : IDL.Null,
+    'policy' : IDL.Null,
+  });
   const MediaContent = IDL.Record({
     'video' : IDL.Opt(ExternalBlob),
     'text' : IDL.Opt(IDL.Text),
     'image' : IDL.Opt(ExternalBlob),
   });
   const PostType = IDL.Variant({ 'regular' : IDL.Null, 'newsFeed' : IDL.Null });
+  const LiveSessionStatus = IDL.Variant({
+    'scheduled' : IDL.Null,
+    'live' : IDL.Null,
+    'ended' : IDL.Null,
+  });
+  const LiveSession = IDL.Record({
+    'id' : IDL.Nat,
+    'status' : LiveSessionStatus,
+    'title' : IDL.Text,
+    'startedAt' : IDL.Opt(IDL.Int),
+    'topic' : IDL.Text,
+    'endedAt' : IDL.Opt(IDL.Int),
+    'scheduledTime' : IDL.Int,
+    'leader' : IDL.Principal,
+    'constituency' : IDL.Text,
+    'viewerCount' : IDL.Nat,
+  });
   const UserProfile = IDL.Record({
     'bio' : IDL.Text,
     'name' : IDL.Text,
@@ -199,6 +337,19 @@ export const idlFactory = ({ IDL }) => {
     'verifiedStatus' : IDL.Bool,
     'followerCount' : IDL.Nat,
     'location' : IDL.Text,
+  });
+  const CivicNotification = IDL.Record({
+    'title' : IDL.Text,
+    'recipient' : IDL.Principal,
+    'isRead' : IDL.Bool,
+    'senderPrincipal' : IDL.Opt(IDL.Principal),
+    'message' : IDL.Text,
+    'timestamp' : Time,
+    'relatedGroup' : IDL.Opt(IDL.Nat),
+    'category' : IDL.Text,
+    'notificationId' : IDL.Nat,
+    'locationTarget' : IDL.Opt(IDL.Text),
+    'relatedPost' : IDL.Opt(IDL.Nat),
   });
   const Group = IDL.Record({
     'id' : IDL.Nat,
@@ -238,6 +389,23 @@ export const idlFactory = ({ IDL }) => {
     'editHistory' : IDL.Vec(PostEdit),
     'timestamp' : Time,
   });
+  const LiveComment = IDL.Record({
+    'id' : IDL.Nat,
+    'isModerated' : IDL.Bool,
+    'upvotes' : IDL.Vec(IDL.Principal),
+    'content' : IDL.Text,
+    'parentCommentId' : IDL.Opt(IDL.Nat),
+    'authorId' : IDL.Principal,
+    'moderationReason' : IDL.Opt(IDL.Text),
+    'timestamp' : IDL.Int,
+    'sessionId' : IDL.Nat,
+  });
+  const LiveReaction = IDL.Record({
+    'authorId' : IDL.Principal,
+    'reactionType' : LiveReactionType,
+    'timestamp' : IDL.Int,
+    'sessionId' : IDL.Nat,
+  });
   
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -267,10 +435,31 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'addLiveComment' : IDL.Func(
+        [IDL.Nat, IDL.Text, IDL.Opt(IDL.Nat)],
+        [IDL.Nat],
+        [],
+      ),
+    'addLiveReaction' : IDL.Func([IDL.Nat, LiveReactionType], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'createCivicNotification' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Opt(IDL.Text)],
+        [IDL.Nat],
+        [],
+      ),
     'createGroup' : IDL.Func([CreateGroupArgs], [IDL.Nat], []),
+    'createLiveSession' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Int],
+        [IDL.Nat],
+        [],
+      ),
     'createPage' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Text, IDL.Opt(ExternalBlob), IDL.Bool],
+        [IDL.Nat],
+        [],
+      ),
+    'createPoliticalDiscussion' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, DiscussionCategory],
         [IDL.Nat],
         [],
       ),
@@ -284,19 +473,58 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Nat],
         [],
       ),
+    'endLiveSession' : IDL.Func([IDL.Nat], [], []),
+    'getActiveSessions' : IDL.Func([], [IDL.Vec(LiveSession)], ['query']),
+    'getAllLiveSessions' : IDL.Func([], [IDL.Vec(LiveSession)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getCivicNotifications' : IDL.Func(
+        [IDL.Opt(IDL.Text)],
+        [IDL.Vec(CivicNotification)],
+        ['query'],
+      ),
     'getGroup' : IDL.Func([IDL.Nat], [IDL.Opt(Group)], ['query']),
+    'getLeaderArchive' : IDL.Func([], [IDL.Vec(LiveSession)], ['query']),
+    'getLiveSession' : IDL.Func([IDL.Nat], [IDL.Opt(LiveSession)], ['query']),
     'getPage' : IDL.Func([IDL.Nat], [IDL.Opt(Page)], ['query']),
     'getPoll' : IDL.Func([IDL.Nat], [IDL.Opt(Poll)], ['query']),
     'getPost' : IDL.Func([IDL.Nat], [IDL.Opt(Post)], ['query']),
+    'getScheduledSessions' : IDL.Func([], [IDL.Vec(LiveSession)], ['query']),
+    'getSessionComments' : IDL.Func(
+        [IDL.Nat],
+        [IDL.Vec(LiveComment)],
+        ['query'],
+      ),
+    'getSessionReactions' : IDL.Func(
+        [IDL.Nat],
+        [IDL.Vec(LiveReaction)],
+        ['query'],
+      ),
+    'getUnreadCivicNotificationCount' : IDL.Func([], [IDL.Nat], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
+    'incrementSessionViewers' : IDL.Func([IDL.Nat], [], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'markAllCivicNotificationsRead' : IDL.Func([], [IDL.Bool], []),
+    'markCivicNotificationRead' : IDL.Func([IDL.Nat], [IDL.Bool], []),
+    'moderateLiveComment' : IDL.Func([IDL.Nat, IDL.Nat, IDL.Text], [], []),
+    'reportLocalIssue' : IDL.Func(
+        [
+          IDL.Text,
+          IDL.Text,
+          IDL.Opt(ExternalBlob),
+          IDL.Opt(IDL.Text),
+          IDL.Text,
+        ],
+        [IDL.Nat],
+        [],
+      ),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'startLiveSession' : IDL.Func([IDL.Nat], [], []),
+    'upvoteQuestion' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
   });
 };
 

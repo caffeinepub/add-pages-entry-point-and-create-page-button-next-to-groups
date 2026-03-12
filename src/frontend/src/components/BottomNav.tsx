@@ -1,12 +1,12 @@
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { BarChart2, Film, Home, MessageSquare, Users } from "lucide-react";
+import { Film, Home, MessageSquare, Radio, Users } from "lucide-react";
 import React from "react";
 
 const navItems = [
   { label: "Home", icon: Home, path: "/" },
   { label: "Reels", icon: Film, path: "/reels" },
   { label: "Discuss", icon: MessageSquare, path: "/discussions" },
-  { label: "Polls", icon: BarChart2, path: "/polls" },
+  { label: "Live", icon: Radio, path: "/live" },
   { label: "Communities", icon: Users, path: "/communities" },
 ];
 

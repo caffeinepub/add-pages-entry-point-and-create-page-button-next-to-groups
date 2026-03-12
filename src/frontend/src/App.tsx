@@ -15,6 +15,7 @@ import BottomNav from "./components/BottomNav";
 import Header from "./components/Header";
 
 import AdminPage from "./pages/AdminPage";
+import CivWorldLivePage from "./pages/CivWorldLivePage";
 import CommunitiesPage from "./pages/CommunitiesPage";
 import CreateGroupPage from "./pages/CreateGroupPage";
 import CreatePagePage from "./pages/CreatePagePage";
@@ -25,9 +26,11 @@ import EventsPage from "./pages/EventsPage";
 import ExplorePage from "./pages/ExplorePage";
 import GroupDetailPage from "./pages/GroupDetailPage";
 import HomePage from "./pages/HomePage";
+import LiveSessionPage from "./pages/LiveSessionPage";
 import MessagesPage from "./pages/MessagesPage";
 import MyAreaPage from "./pages/MyAreaPage";
 import MyConstituencyPage from "./pages/MyConstituencyPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import PageDetailPage from "./pages/PageDetailPage";
 import PollResultsPage from "./pages/PollResultsPage";
 import PollsPage from "./pages/PollsPage";
@@ -201,6 +204,24 @@ const adminRoute = createRoute({
   component: AdminPage,
 });
 
+const liveRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/live",
+  component: CivWorldLivePage,
+});
+
+const liveSessionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/live/$sessionId",
+  component: LiveSessionPage,
+});
+
+const notificationsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/notifications",
+  component: NotificationsPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   pollsRoute,
@@ -225,6 +246,9 @@ const routeTree = rootRoute.addChildren([
   educationRoute,
   eventsRoute,
   adminRoute,
+  liveRoute,
+  liveSessionRoute,
+  notificationsRoute,
 ]);
 
 const router = createRouter({

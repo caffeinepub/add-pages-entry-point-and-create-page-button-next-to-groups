@@ -1281,6 +1281,109 @@ export function useGetNotifications() {
   });
 }
 
+export function useGetCivicNotifications(category: string | null) {
+  const { actor, isFetching: actorFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  return useQuery({
+    queryKey: ["civicNotifications", category],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getCivicNotifications(category);
+    },
+    enabled: !!actor && !actorFetching && !!identity,
+    refetchInterval: 30000,
+  });
+}
+
+export function useGetUnreadCivicNotificationCount() {
+  const { actor, isFetching: actorFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  return useQuery<bigint>({
+    queryKey: ["unreadNotificationCount"],
+    queryFn: async () => {
+      if (!actor) return 0n;
+      return actor.getUnreadCivicNotificationCount();
+    },
+    enabled: !!actor && !actorFetching && !!identity,
+    refetchInterval: 30000,
+  });
+}
+
+export function useMarkCivicNotificationRead() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (notificationId: bigint) => {
+      if (!actor) throw new Error("Actor not available. Please try again.");
+      return actor.markCivicNotificationRead(notificationId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["civicNotifications"] });
+      queryClient.invalidateQueries({ queryKey: ["unreadNotificationCount"] });
+    },
+    onError: (error: unknown) => {
+      toast.error(formatBackendError(error));
+    },
+  });
+}
+
+export function useMarkAllCivicNotificationsRead() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Actor not available. Please try again.");
+      return actor.markAllCivicNotificationsRead();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["civicNotifications"] });
+      queryClient.invalidateQueries({ queryKey: ["unreadNotificationCount"] });
+      toast.success("All notifications marked as read.");
+    },
+    onError: (error: unknown) => {
+      toast.error(formatBackendError(error));
+    },
+  });
+}
+
+export function useCreateCivicNotification() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      title,
+      message,
+      category,
+      locationTarget,
+    }: {
+      title: string;
+      message: string;
+      category: string;
+      locationTarget: string | null;
+    }) => {
+      if (!actor) throw new Error("Actor not available. Please try again.");
+      return actor.createCivicNotification(
+        title,
+        message,
+        category,
+        locationTarget,
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["civicNotifications"] });
+      toast.success("Notification sent successfully!");
+    },
+    onError: (error: unknown) => {
+      toast.error(formatBackendError(error));
+    },
+  });
+}
+
 // ─── Discussions ──────────────────────────────────────────────────────────────
 
 export function useGetDiscussions() {

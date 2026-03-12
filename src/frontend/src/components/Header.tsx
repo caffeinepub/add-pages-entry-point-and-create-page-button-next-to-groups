@@ -7,6 +7,7 @@ import civworldLogo from "/assets/generated/civworld-app-icon.dim_1024x1024.png"
 import { useView } from "../context/ViewContext";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useIsAdmin } from "../hooks/useQueries";
+import NotificationBell from "./NotificationBell";
 
 export default function Header() {
   const navigate = useNavigate();
@@ -100,6 +101,9 @@ export default function Header() {
               <Shield className="w-4 h-4 text-primary" />
             </Button>
           )}
+
+          {/* Notification Bell */}
+          {isAuthenticated && <NotificationBell />}
 
           {/* Profile */}
           {isAuthenticated && (
