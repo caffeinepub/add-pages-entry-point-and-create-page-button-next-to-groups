@@ -1,0 +1,27 @@
+{
+  "name": "CivWorld",
+  "short_name": "CivWorld",
+  "description": "CivWorld - Political and Civic Discussion Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f2d6b",
+  "theme_color": "#0f2d6b",
+  "icons": [
+    {
+      "src": "/assets/generated/civworld-icon.dim_512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/generated/civworld-icon.dim_512x512.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["news", "social", "politics"],
+  "lang": "en",
+  "dir": "ltr"
+}

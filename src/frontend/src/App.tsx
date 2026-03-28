@@ -13,6 +13,7 @@ import { ViewProvider } from "./context/ViewContext";
 
 import BottomNav from "./components/BottomNav";
 import Header from "./components/Header";
+import PWAInstallBanner from "./components/PWAInstallBanner";
 
 import AdminPage from "./pages/AdminPage";
 import CivWorldLivePage from "./pages/CivWorldLivePage";
@@ -58,6 +59,7 @@ function Layout() {
         <Outlet />
       </main>
       <BottomNav />
+      <PWAInstallBanner />
     </div>
   );
 }
